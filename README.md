@@ -164,38 +164,6 @@ herald --message "Tests passed (42/42)" --title "CI" --timeout 5 --sound default
 echo "Deploy complete: 3 services updated" | herald --title "Deploy" --timeout 10 --sound default
 ```
 
-## Project Structure
-
-```
-herald/
-├── Package.swift                      # SPM manifest (swift-tools-version: 6.0)
-├── Sources/Herald/
-│   ├── Herald.swift                   # Entry point, ArgumentParser config
-│   ├── Commands/
-│   │   ├── Send.swift                 # Default subcommand: send notification
-│   │   ├── ListNotifications.swift    # List delivered/pending notifications
-│   │   └── RemoveNotifications.swift  # Remove notifications by group/ID
-│   ├── NotificationManager.swift      # UNUserNotificationCenter wrapper
-│   ├── NotificationDelegate.swift     # UNUserNotificationCenterDelegate
-│   ├── Models/
-│   │   └── NotificationResponse.swift # Response model + ActivationType enum
-│   ├── OutputFormatter.swift          # JSON / plain text output
-│   └── SignalHandler.swift            # Graceful SIGTERM/SIGINT
-├── resources/
-│   └── Info.plist                     # App bundle config
-├── plugin/                            # Claude Code plugin
-│   ├── .claude-plugin/plugin.json
-│   └── commands/
-│       ├── notify.md                  # /herald:notify
-│       └── ask.md                     # /herald:ask
-├── scripts/
-│   ├── build-app.sh                   # Build .app bundle from SPM output
-│   └── install.sh                     # Build + copy + symlink
-├── Makefile
-├── AGENTS.md                          # Universal AI agent instructions
-└── README.md
-```
-
 ## License
 
 MIT
