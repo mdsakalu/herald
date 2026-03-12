@@ -22,9 +22,6 @@ struct Send: AsyncParsableCommand {
     @Option(name: .long, help: "Comma-separated button labels (up to 4).")
     var actions: String?
 
-    @Option(name: .long, help: "Close/dismiss button text.")
-    var closeLabel: String?
-
     @Option(name: .long, help: "Auto-dismiss seconds (0 = sticky until interaction).")
     var timeout: Int = 0
 
@@ -56,7 +53,43 @@ struct Send: AsyncParsableCommand {
     var json: Bool = false
 
     func run() async throws {
-        // Resolve message: flag > stdin
+        let body = try resolveBody()
+        let notificationID = id ?? UUID().uuidString
+        let actionLabels = try parseActions()
+
+        let config = NotificationConfig(
+            id: notificationID,
+            title: title,
+            subtitle: subtitle,
+            body: body,
+            actions: actionLabels,
+            replyPlaceholder: reply,
+            timeout: timeout,
+            soundName: sound,
+            imagePath: image,
+            groupID: group,
+            threadID: thread,
+            level: level,
+            relevance: relevance,
+            badge: badge
+        )
+
+        let manager = NotificationManager()
+
+        if config.isInteractive {
+            // Interactive: block until user responds or timeout
+            let signalHandler = SignalHandler(notificationID: notificationID, manager: manager, jsonOutput: json)
+            signalHandler.install()
+
+            let response = try await manager.sendAndWait(config: config)
+            print(OutputFormatter.format(response: response, asJSON: json))
+        } else {
+            // Fire-and-forget: deliver and exit immediately
+            try await manager.send(config: config)
+        }
+    }
+
+    private func resolveBody() throws -> String {
         let body: String
         if let msg = message {
             body = msg
@@ -70,46 +103,15 @@ struct Send: AsyncParsableCommand {
         guard !body.isEmpty else {
             throw ValidationError("Message body cannot be empty.")
         }
+        return body
+    }
 
-        let notificationID = id ?? UUID().uuidString
-        let actionLabels = actions?.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) } ?? []
-
-        if actionLabels.count > 4 {
+    private func parseActions() throws -> [String] {
+        let labels = actions?.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) } ?? []
+        if labels.count > 4 {
             throw ValidationError("Maximum 4 action buttons allowed.")
         }
-
-        let manager = NotificationManager()
-
-        // Set up signal handling for graceful cleanup
-        let signalHandler = SignalHandler(notificationID: notificationID, manager: manager)
-        signalHandler.install()
-
-        do {
-            let config = NotificationConfig(
-                id: notificationID,
-                title: title,
-                subtitle: subtitle,
-                body: body,
-                actions: actionLabels,
-                replyPlaceholder: reply,
-                closeLabel: closeLabel,
-                timeout: timeout,
-                soundName: sound,
-                imagePath: image,
-                groupID: group,
-                threadID: thread,
-                level: level,
-                relevance: relevance,
-                badge: badge
-            )
-            let response = try await manager.sendAndWait(config: config)
-
-            let output = OutputFormatter.format(response: response, asJSON: json)
-            print(output)
-        } catch {
-            FileHandle.standardError.write(Data("Error: \(error.localizedDescription)\n".utf8))
-            throw ExitCode(1)
-        }
+        return labels
     }
 }
 

@@ -1,15 +1,18 @@
 import UserNotifications
 
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+    private let resumeOnce: ResumeOnce
     private let continuation: CheckedContinuation<NotificationResponse, Never>
     private let actionLabels: [String]
     private let deliveredAt: Date?
 
     init(
+        resumeOnce: ResumeOnce,
         continuation: CheckedContinuation<NotificationResponse, Never>,
         actionLabels: [String],
         deliveredAt: Date?
     ) {
+        self.resumeOnce = resumeOnce
         self.continuation = continuation
         self.actionLabels = actionLabels
         self.deliveredAt = deliveredAt
@@ -24,18 +27,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
 
         let result: NotificationResponse
         switch response.actionIdentifier {
-        case UNNotificationDismissActionIdentifier:
-            result = NotificationResponse(
-                activationType: .dismissed,
-                activationValue: nil,
-                activationValueIndex: nil,
-                deliveredAt: deliveredAt,
-                activationAt: now,
-                userText: nil
-            )
-
-        case UNNotificationDefaultActionIdentifier:
-            // User tapped the notification body
+        case UNNotificationDismissActionIdentifier, UNNotificationDefaultActionIdentifier:
             result = NotificationResponse(
                 activationType: .dismissed,
                 activationValue: nil,
@@ -56,11 +48,10 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
                     userText: textResponse.userText
                 )
             } else {
-                let index = actionLabels.firstIndex(of: response.actionIdentifier)
                 result = NotificationResponse(
                     activationType: .actionClicked,
                     activationValue: response.actionIdentifier,
-                    activationValueIndex: index,
+                    activationValueIndex: actionLabels.firstIndex(of: response.actionIdentifier),
                     deliveredAt: deliveredAt,
                     activationAt: now,
                     userText: nil
@@ -68,7 +59,7 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
             }
         }
 
-        continuation.resume(returning: result)
+        resumeOnce.resume(continuation, returning: result)
         completionHandler()
     }
 
@@ -77,7 +68,6 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        // Show banner even when herald is "foreground"
         completionHandler([.banner, .sound, .list])
     }
 }

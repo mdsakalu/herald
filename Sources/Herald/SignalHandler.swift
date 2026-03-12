@@ -3,16 +3,17 @@ import Foundation
 final class SignalHandler: @unchecked Sendable {
     private let notificationID: String
     private let manager: NotificationManager
+    private let jsonOutput: Bool
     private var sigintSource: DispatchSourceSignal?
     private var sigtermSource: DispatchSourceSignal?
 
-    init(notificationID: String, manager: NotificationManager) {
+    init(notificationID: String, manager: NotificationManager, jsonOutput: Bool) {
         self.notificationID = notificationID
         self.manager = manager
+        self.jsonOutput = jsonOutput
     }
 
     func install() {
-        // Ignore default signal handling
         signal(SIGINT, SIG_IGN)
         signal(SIGTERM, SIG_IGN)
 
@@ -28,7 +29,16 @@ final class SignalHandler: @unchecked Sendable {
         source.setEventHandler { [weak self] in
             guard let self else { return }
             self.manager.removeNotifications(ids: [self.notificationID])
-            print("@CLOSED")
+
+            let response = NotificationResponse(
+                activationType: .closed,
+                activationValue: nil,
+                activationValueIndex: nil,
+                deliveredAt: nil,
+                activationAt: Date(),
+                userText: nil
+            )
+            print(OutputFormatter.format(response: response, asJSON: self.jsonOutput))
             exit(0)
         }
         return source

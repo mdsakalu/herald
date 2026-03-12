@@ -96,7 +96,6 @@ herald remove --all
 | `--subtitle` | String | — | Subtitle text |
 | `--reply` | String | — | Enable text input; value is placeholder text |
 | `--actions` | String | — | Comma-separated button labels (max 4) |
-| `--close-label` | String | — | Dismiss button text |
 | `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
 | `--sound` | String | — | `"default"`, `"none"`, or system sound name |
 | `--image` | String | — | Attachment path (image, GIF, video, audio) |

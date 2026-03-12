@@ -44,7 +44,6 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--subtitle` | String | — | Subtitle text |
 | `--reply` | String | — | Enable text input; value = placeholder |
 | `--actions` | String | — | Comma-separated buttons (max 4) |
-| `--close-label` | String | — | Dismiss button text |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
 | `--sound` | String | — | "default", "none", or sound name |
 | `--image` | String | — | Attachment path (image/GIF/video/audio) |

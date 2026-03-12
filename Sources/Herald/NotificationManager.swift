@@ -9,7 +9,6 @@ struct NotificationConfig: Sendable {
     let body: String
     let actions: [String]
     let replyPlaceholder: String?
-    let closeLabel: String?
     let timeout: Int
     let soundName: String?
     let imagePath: String?
@@ -18,6 +17,10 @@ struct NotificationConfig: Sendable {
     let level: InterruptionLevelOption
     let relevance: Double?
     let badge: Int?
+
+    var isInteractive: Bool {
+        !actions.isEmpty || replyPlaceholder != nil
+    }
 }
 
 final class NotificationManager: @unchecked Sendable {
@@ -25,14 +28,21 @@ final class NotificationManager: @unchecked Sendable {
     // Strong reference to keep delegate alive (center.delegate is weak)
     private var activeDelegate: NotificationDelegate?
 
+    func send(config: NotificationConfig) async throws {
+        try await authorize()
+
+        let categoryID = registerCategory(actions: config.actions, replyPlaceholder: config.replyPlaceholder)
+        let content = try buildContent(config: config, categoryID: categoryID)
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+        let request = UNNotificationRequest(identifier: config.id, content: content, trigger: trigger)
+        try await center.add(request)
+    }
+
     func sendAndWait(config: NotificationConfig) async throws -> NotificationResponse {
         try await authorize()
 
-        let categoryID = registerCategory(
-            actions: config.actions,
-            replyPlaceholder: config.replyPlaceholder,
-            closeLabel: config.closeLabel
-        )
+        let categoryID = registerCategory(actions: config.actions, replyPlaceholder: config.replyPlaceholder)
         let content = try buildContent(config: config, categoryID: categoryID)
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
@@ -110,8 +120,11 @@ final class NotificationManager: @unchecked Sendable {
     }
 
     private func waitForResponse(config: NotificationConfig, deliveredAt: Date) async -> NotificationResponse {
-        await withCheckedContinuation { continuation in
+        let resumeOnce = ResumeOnce()
+
+        return await withCheckedContinuation { continuation in
             let delegate = NotificationDelegate(
+                resumeOnce: resumeOnce,
                 continuation: continuation,
                 actionLabels: config.actions,
                 deliveredAt: deliveredAt
@@ -123,7 +136,7 @@ final class NotificationManager: @unchecked Sendable {
                 DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(config.timeout)) {
                     self.center.removeDeliveredNotifications(withIdentifiers: [config.id])
                     self.center.removePendingNotificationRequests(withIdentifiers: [config.id])
-                    continuation.resume(returning: NotificationResponse(
+                    resumeOnce.resume(continuation, returning: NotificationResponse(
                         activationType: .timeout,
                         activationValue: nil,
                         activationValueIndex: nil,
@@ -144,7 +157,7 @@ final class NotificationManager: @unchecked Sendable {
         }
     }
 
-    private func registerCategory(actions: [String], replyPlaceholder: String?, closeLabel: String?) -> String {
+    private func registerCategory(actions: [String], replyPlaceholder: String?) -> String {
         var notificationActions: [UNNotificationAction] = []
 
         if let replyPlaceholder {
@@ -198,6 +211,23 @@ final class NotificationManager: @unchecked Sendable {
 
     private func writeStderr(_ message: String) {
         FileHandle.standardError.write(Data(message.utf8))
+    }
+}
+
+/// Thread-safe guard ensuring a CheckedContinuation is resumed exactly once.
+final class ResumeOnce: @unchecked Sendable {
+    private var resumed = false
+    private let lock = NSLock()
+
+    func resume(_ continuation: CheckedContinuation<NotificationResponse, Never>, returning value: NotificationResponse) {
+        lock.lock()
+        let shouldResume = !resumed
+        if shouldResume { resumed = true }
+        lock.unlock()
+
+        if shouldResume {
+            continuation.resume(returning: value)
+        }
     }
 }
 
