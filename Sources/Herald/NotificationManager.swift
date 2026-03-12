@@ -2,141 +2,45 @@ import ArgumentParser
 import UserNotifications
 import Foundation
 
+struct NotificationConfig: Sendable {
+    let id: String
+    let title: String
+    let subtitle: String?
+    let body: String
+    let actions: [String]
+    let replyPlaceholder: String?
+    let closeLabel: String?
+    let timeout: Int
+    let soundName: String?
+    let imagePath: String?
+    let groupID: String?
+    let threadID: String?
+    let level: InterruptionLevelOption
+    let relevance: Double?
+    let badge: Int?
+}
+
 final class NotificationManager: @unchecked Sendable {
     private let center = UNUserNotificationCenter.current()
     // Strong reference to keep delegate alive (center.delegate is weak)
     private var activeDelegate: NotificationDelegate?
 
-    func sendAndWait(
-        id: String,
-        title: String,
-        subtitle: String?,
-        body: String,
-        actions: [String],
-        replyPlaceholder: String?,
-        closeLabel: String?,
-        timeout: Int,
-        soundName: String?,
-        imagePath: String?,
-        groupID: String?,
-        threadID: String?,
-        level: InterruptionLevelOption,
-        relevance: Double?,
-        badge: Int?
-    ) async throws -> NotificationResponse {
-        // 1. Request authorization
-        do {
-            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-            if !granted {
-                FileHandle.standardError.write(Data("Notification permission denied. Enable in System Settings > Notifications > Herald.\n".utf8))
-                throw ExitCode(2)
-            }
-        } catch let error as ExitCode {
-            throw error
-        } catch {
-            FileHandle.standardError.write(Data("Authorization error: \(error.localizedDescription)\n".utf8))
-            // Check current settings for diagnostics
-            let settings = await center.notificationSettings()
-            FileHandle.standardError.write(Data("Authorization status: \(settings.authorizationStatus.rawValue)\n".utf8))
-            FileHandle.standardError.write(Data("Hint: Open System Settings > Notifications and enable notifications for Herald.\n".utf8))
-            throw ExitCode(2)
-        }
+    func sendAndWait(config: NotificationConfig) async throws -> NotificationResponse {
+        try await authorize()
 
-        // 2. Register category with actions
-        let categoryID = registerCategory(actions: actions, replyPlaceholder: replyPlaceholder, closeLabel: closeLabel)
+        let categoryID = registerCategory(
+            actions: config.actions,
+            replyPlaceholder: config.replyPlaceholder,
+            closeLabel: config.closeLabel
+        )
+        let content = try buildContent(config: config, categoryID: categoryID)
 
-        // 3. Build notification content
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        if let subtitle { content.subtitle = subtitle }
-        if let threadID { content.threadIdentifier = threadID }
-        content.categoryIdentifier = categoryID
-
-        // Sound
-        if let soundName {
-            switch soundName.lowercased() {
-            case "none":
-                content.sound = nil
-            case "default":
-                content.sound = .default
-            default:
-                content.sound = UNNotificationSound(named: UNNotificationSoundName(rawValue: soundName))
-            }
-        }
-
-        // Interruption level
-        switch level {
-        case .passive:
-            content.interruptionLevel = .passive
-        case .active:
-            content.interruptionLevel = .active
-        case .timeSensitive:
-            content.interruptionLevel = .timeSensitive
-        case .critical:
-            content.interruptionLevel = .critical
-        }
-
-        // Relevance score
-        if let relevance {
-            content.relevanceScore = max(0.0, min(1.0, relevance))
-        }
-
-        // Badge
-        if let badge {
-            content.badge = NSNumber(value: badge)
-        }
-
-        // Attachment
-        if let imagePath {
-            let attachment = try createAttachment(from: imagePath)
-            content.attachments = [attachment]
-        }
-
-        // Target content identifier for grouping
-        if let groupID {
-            content.targetContentIdentifier = groupID
-        }
-
-        // 4. Schedule notification
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
+        let request = UNNotificationRequest(identifier: config.id, content: content, trigger: trigger)
         try await center.add(request)
 
         let deliveredAt = Date()
-
-        // 5. Wait for response
-        let response: NotificationResponse = await withCheckedContinuation { continuation in
-            let delegate = NotificationDelegate(
-                continuation: continuation,
-                actionLabels: actions,
-                deliveredAt: deliveredAt
-            )
-            self.activeDelegate = delegate
-            center.delegate = delegate
-
-            // Set up timeout if specified
-            if timeout > 0 {
-                DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(timeout)) {
-                    // Remove the notification and return timeout response
-                    self.center.removeDeliveredNotifications(withIdentifiers: [id])
-                    self.center.removePendingNotificationRequests(withIdentifiers: [id])
-                    continuation.resume(returning: NotificationResponse(
-                        activationType: .timeout,
-                        activationValue: nil,
-                        activationValueIndex: nil,
-                        deliveredAt: deliveredAt,
-                        activationAt: Date(),
-                        userText: nil
-                    ))
-                }
-            }
-
-            // NSApplication.run() in Herald.main() drives the event loop
-            // for delegate callbacks — no manual RunLoop needed here
-        }
-
-        return response
+        return await waitForResponse(config: config, deliveredAt: deliveredAt)
     }
 
     func removeNotifications(ids: [String]) {
@@ -159,53 +63,115 @@ final class NotificationManager: @unchecked Sendable {
 
     // MARK: - Private
 
+    private func authorize() async throws {
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            if !granted {
+                writeStderr("Notification permission denied. Enable in System Settings > Notifications > Herald.\n")
+                throw ExitCode(2)
+            }
+        } catch let error as ExitCode {
+            throw error
+        } catch {
+            writeStderr("Authorization error: \(error.localizedDescription)\n")
+            let settings = await center.notificationSettings()
+            writeStderr("Authorization status: \(settings.authorizationStatus.rawValue)\n")
+            writeStderr("Hint: Open System Settings > Notifications and enable notifications for Herald.\n")
+            throw ExitCode(2)
+        }
+    }
+
+    private func buildContent(
+        config: NotificationConfig,
+        categoryID: String
+    ) throws -> UNNotificationContent {
+        let content = UNMutableNotificationContent()
+        content.title = config.title
+        content.body = config.body
+        content.categoryIdentifier = categoryID
+
+        if let subtitle = config.subtitle { content.subtitle = subtitle }
+        if let threadID = config.threadID { content.threadIdentifier = threadID }
+        if let groupID = config.groupID { content.targetContentIdentifier = groupID }
+        if let relevance = config.relevance { content.relevanceScore = max(0.0, min(1.0, relevance)) }
+        if let badge = config.badge { content.badge = NSNumber(value: badge) }
+
+        if let soundName = config.soundName {
+            content.sound = resolveSound(soundName)
+        }
+
+        content.interruptionLevel = config.level.unLevel
+
+        if let imagePath = config.imagePath {
+            content.attachments = [try createAttachment(from: imagePath)]
+        }
+
+        return content
+    }
+
+    private func waitForResponse(config: NotificationConfig, deliveredAt: Date) async -> NotificationResponse {
+        await withCheckedContinuation { continuation in
+            let delegate = NotificationDelegate(
+                continuation: continuation,
+                actionLabels: config.actions,
+                deliveredAt: deliveredAt
+            )
+            self.activeDelegate = delegate
+            center.delegate = delegate
+
+            if config.timeout > 0 {
+                DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(config.timeout)) {
+                    self.center.removeDeliveredNotifications(withIdentifiers: [config.id])
+                    self.center.removePendingNotificationRequests(withIdentifiers: [config.id])
+                    continuation.resume(returning: NotificationResponse(
+                        activationType: .timeout,
+                        activationValue: nil,
+                        activationValueIndex: nil,
+                        deliveredAt: deliveredAt,
+                        activationAt: Date(),
+                        userText: nil
+                    ))
+                }
+            }
+        }
+    }
+
+    private func resolveSound(_ name: String) -> UNNotificationSound? {
+        switch name.lowercased() {
+        case "none": return nil
+        case "default": return .default
+        default: return UNNotificationSound(named: UNNotificationSoundName(rawValue: name))
+        }
+    }
+
     private func registerCategory(actions: [String], replyPlaceholder: String?, closeLabel: String?) -> String {
         var notificationActions: [UNNotificationAction] = []
 
-        // If reply is enabled, add a text input action
         if let replyPlaceholder {
-            let replyAction = UNTextInputNotificationAction(
+            notificationActions.append(UNTextInputNotificationAction(
                 identifier: "__reply__",
                 title: "Reply",
                 options: [],
                 textInputButtonTitle: "Send",
                 textInputPlaceholder: replyPlaceholder
-            )
-            notificationActions.append(replyAction)
+            ))
         }
 
-        // Add button actions
         for label in actions {
-            let action = UNNotificationAction(
-                identifier: label,
-                title: label,
-                options: []
-            )
-            notificationActions.append(action)
+            notificationActions.append(UNNotificationAction(identifier: label, title: label, options: []))
         }
 
-        let categoryID: String
-        if notificationActions.isEmpty {
-            categoryID = "herald.default"
-            let category = UNNotificationCategory(
-                identifier: categoryID,
-                actions: [],
-                intentIdentifiers: [],
-                options: [.customDismissAction]
-            )
-            center.setNotificationCategories([category])
-        } else {
-            // Deterministic category ID from action names
-            let actionIDs = notificationActions.map(\.identifier).joined(separator: "+")
-            categoryID = "herald.\(actionIDs)"
-            let category = UNNotificationCategory(
-                identifier: categoryID,
-                actions: notificationActions,
-                intentIdentifiers: [],
-                options: [.customDismissAction]
-            )
-            center.setNotificationCategories([category])
-        }
+        let categoryID = notificationActions.isEmpty
+            ? "herald.default"
+            : "herald.\(notificationActions.map(\.identifier).joined(separator: "+"))"
+
+        let category = UNNotificationCategory(
+            identifier: categoryID,
+            actions: notificationActions,
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+        center.setNotificationCategories([category])
 
         return categoryID
     }
@@ -217,7 +183,6 @@ final class NotificationManager: @unchecked Sendable {
             throw NotificationError.attachmentNotFound(path)
         }
 
-        // Copy to temp location (required by UNNotificationAttachment)
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("herald-attachments", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
@@ -229,6 +194,21 @@ final class NotificationManager: @unchecked Sendable {
         try FileManager.default.copyItem(at: url, to: tempFile)
 
         return try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFile, options: nil)
+    }
+
+    private func writeStderr(_ message: String) {
+        FileHandle.standardError.write(Data(message.utf8))
+    }
+}
+
+extension InterruptionLevelOption {
+    var unLevel: UNNotificationInterruptionLevel {
+        switch self {
+        case .passive: return .passive
+        case .active: return .active
+        case .timeSensitive: return .timeSensitive
+        case .critical: return .critical
+        }
     }
 }
 

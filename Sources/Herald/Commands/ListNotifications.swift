@@ -18,33 +18,17 @@ struct ListNotifications: AsyncParsableCommand {
         let delivered = await manager.getDeliveredNotifications()
         let pending = await manager.getPendingNotifications()
 
-        var entries: [[String: String]] = []
+        let filteredDelivered = delivered
+            .filter { group == nil || $0.request.content.targetContentIdentifier == group }
+            .map { ["id": $0.request.identifier, "title": $0.request.content.title,
+                     "message": $0.request.content.body, "status": "delivered"] }
 
-        for notification in delivered {
-            let content = notification.request.content
-            if let group, content.targetContentIdentifier != group {
-                continue
-            }
-            entries.append([
-                "id": notification.request.identifier,
-                "title": content.title,
-                "message": content.body,
-                "status": "delivered",
-            ])
-        }
+        let filteredPending = pending
+            .filter { group == nil || $0.content.targetContentIdentifier == group }
+            .map { ["id": $0.identifier, "title": $0.content.title,
+                     "message": $0.content.body, "status": "pending"] }
 
-        for request in pending {
-            let content = request.content
-            if let group, content.targetContentIdentifier != group {
-                continue
-            }
-            entries.append([
-                "id": request.identifier,
-                "title": content.title,
-                "message": content.body,
-                "status": "pending",
-            ])
-        }
+        let entries = filteredDelivered + filteredPending
 
         if json {
             let encoder = JSONEncoder()

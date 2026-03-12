@@ -40,17 +40,13 @@ struct RemoveNotifications: AsyncParsableCommand {
             let delivered = await manager.getDeliveredNotifications()
             let pending = await manager.getPendingNotifications()
 
-            var idsToRemove: [String] = []
-            for notification in delivered {
-                if notification.request.content.targetContentIdentifier == group {
-                    idsToRemove.append(notification.request.identifier)
-                }
-            }
-            for request in pending {
-                if request.content.targetContentIdentifier == group {
-                    idsToRemove.append(request.identifier)
-                }
-            }
+            let deliveredIDs = delivered
+                .filter { $0.request.content.targetContentIdentifier == group }
+                .map(\.request.identifier)
+            let pendingIDs = pending
+                .filter { $0.content.targetContentIdentifier == group }
+                .map(\.identifier)
+            let idsToRemove = deliveredIDs + pendingIDs
 
             if idsToRemove.isEmpty {
                 print("No notifications found for group: \(group)")

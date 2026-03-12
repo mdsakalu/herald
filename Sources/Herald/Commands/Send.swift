@@ -85,7 +85,7 @@ struct Send: AsyncParsableCommand {
         signalHandler.install()
 
         do {
-            let response = try await manager.sendAndWait(
+            let config = NotificationConfig(
                 id: notificationID,
                 title: title,
                 subtitle: subtitle,
@@ -102,6 +102,7 @@ struct Send: AsyncParsableCommand {
                 relevance: relevance,
                 badge: badge
             )
+            let response = try await manager.sendAndWait(config: config)
 
             let output = OutputFormatter.format(response: response, asJSON: json)
             print(output)
