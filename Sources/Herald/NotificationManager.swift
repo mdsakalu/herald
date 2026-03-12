@@ -4,6 +4,8 @@ import Foundation
 
 final class NotificationManager: @unchecked Sendable {
     private let center = UNUserNotificationCenter.current()
+    // Strong reference to keep delegate alive (center.delegate is weak)
+    private var activeDelegate: NotificationDelegate?
 
     func sendAndWait(
         id: String,
@@ -23,9 +25,20 @@ final class NotificationManager: @unchecked Sendable {
         badge: Int?
     ) async throws -> NotificationResponse {
         // 1. Request authorization
-        let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-        guard granted else {
-            FileHandle.standardError.write(Data("Notification permission denied. Enable in System Settings > Notifications.\n".utf8))
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            if !granted {
+                FileHandle.standardError.write(Data("Notification permission denied. Enable in System Settings > Notifications > Herald.\n".utf8))
+                throw ExitCode(2)
+            }
+        } catch let error as ExitCode {
+            throw error
+        } catch {
+            FileHandle.standardError.write(Data("Authorization error: \(error.localizedDescription)\n".utf8))
+            // Check current settings for diagnostics
+            let settings = await center.notificationSettings()
+            FileHandle.standardError.write(Data("Authorization status: \(settings.authorizationStatus.rawValue)\n".utf8))
+            FileHandle.standardError.write(Data("Hint: Open System Settings > Notifications and enable notifications for Herald.\n".utf8))
             throw ExitCode(2)
         }
 
@@ -99,6 +112,7 @@ final class NotificationManager: @unchecked Sendable {
                 actionLabels: actions,
                 deliveredAt: deliveredAt
             )
+            self.activeDelegate = delegate
             center.delegate = delegate
 
             // Set up timeout if specified
@@ -118,8 +132,8 @@ final class NotificationManager: @unchecked Sendable {
                 }
             }
 
-            // Run the run loop to receive delegate callbacks
-            RunLoop.main.run()
+            // NSApplication.run() in Herald.main() drives the event loop
+            // for delegate callbacks — no manual RunLoop needed here
         }
 
         return response

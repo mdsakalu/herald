@@ -21,5 +21,9 @@ cp "${BUILD_DIR}/release/Herald" "$APP_DIR/Contents/MacOS/herald"
 # Copy Info.plist
 cp "$PROJECT_DIR/resources/Info.plist" "$APP_DIR/Contents/Info.plist"
 
+# Ad-hoc sign (required for UNUserNotificationCenter authorization)
+echo "Signing app bundle..."
+codesign --force --deep --sign - "$APP_DIR"
+
 echo "App bundle created at: $APP_DIR"
 echo "Binary: $APP_DIR/Contents/MacOS/herald"
