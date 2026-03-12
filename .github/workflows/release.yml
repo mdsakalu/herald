@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+
+      - name: Verify CLI
+        run: .build/Herald.app/Contents/MacOS/herald --version
+
+      - name: Package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          tar -czvf herald-${VERSION}-macos-arm64.tar.gz -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: herald-*.tar.gz

@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: ["*"]
+    tags-ignore: ["v*"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: SwiftLint
+        run: |
+          brew install swiftlint
+          swiftlint lint --strict
+
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+
+      - name: Verify CLI
+        run: .build/Herald.app/Contents/MacOS/herald --version
