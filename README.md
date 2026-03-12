@@ -4,6 +4,7 @@
 
 Modern macOS notification CLI built on UNUserNotificationCenter
 
+[<img src="https://img.shields.io/github/actions/workflow/status/mdsakalu/herald/check.yml?label=build&logo=github" />](https://github.com/mdsakalu/herald/actions)
 [<img src="https://img.shields.io/github/v/release/mdsakalu/herald?label=release&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI%2BCiAgPHBhdGggZD0iTTIgNyBMNyAyIEgxNCBWOSBMOSAxNCBaIi8%2BCiAgPGNpcmNsZSBjeD0iMTEiIGN5PSI1IiByPSIxIi8%2BCjwvc3ZnPg%3D%3D" />](https://github.com/mdsakalu/herald/releases/latest)
 [<img src="https://img.shields.io/github/downloads/mdsakalu/herald/total?label=downloads&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI%2BCiAgPHBhdGggZD0iTTggMiBWMTAiLz4KICA8cGF0aCBkPSJNNSA3IEw4IDEwIEwxMSA3Ii8%2BCiAgPHBhdGggZD0iTTMgMTMgSDEzIi8%2BCjwvc3ZnPg%3D%3D" />](https://github.com/mdsakalu/herald/releases)
 [<img src="https://img.shields.io/badge/Swift-6.0+-F05138?logo=swift&logoColor=white" />](https://www.swift.org)
@@ -14,9 +15,7 @@ Modern macOS notification CLI built on UNUserNotificationCenter
 
 ## About
 
-Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-notifier](https://github.com/julienXX/terminal-notifier) with a single Swift CLI built on Apple's modern `UNUserNotificationCenter` API — no deprecated `NSUserNotification`, no private API hacks.
-
-Designed for AI coding tools (Claude Code, Codex, Gemini, Cursor) to notify users and capture responses via system notifications.
+Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-notifier](https://github.com/julienXX/terminal-notifier) with a single Swift CLI built on Apple's modern `UNUserNotificationCenter` API — no deprecated `NSUserNotification`, no private API hacks. Send notifications, capture user responses with action buttons and text input, attach rich media, and manage the notification lifecycle from the terminal.
 
 ### What's new vs alerter/terminal-notifier
 
@@ -143,7 +142,7 @@ JSON (`--json`):
 
 ## AI Agent Integration
 
-Herald is designed to be called by AI coding agents via Bash. It ships with:
+Herald's JSON output and synchronous response capture make it easy to integrate with AI coding agents. It ships with:
 
 - **[AGENTS.md](AGENTS.md)** — universal CLI reference read by Codex, Gemini, Claude Code, Cursor, Zed, and GitHub Copilot
 - **Claude Code plugin** — `/herald:notify` (fire-and-forget) and `/herald:ask` (wait for response) slash commands

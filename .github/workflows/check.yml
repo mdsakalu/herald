@@ -1,0 +1,53 @@
+name: Check
+
+on:
+  push:
+    branches: ["*"]
+    tags-ignore: ["v*"]
+    paths:
+      - ".github/workflows/*.yml"
+      - "Package.swift"
+      - "Sources/**"
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build -c release
+
+      - name: Build app bundle
+        run: ./scripts/build-app.sh
+
+      - name: Verify CLI
+        run: .build/Herald.app/Contents/MacOS/herald --version
+
+      - name: Compute artifact name
+        id: artifact
+        if: github.event_name != 'pull_request'
+        run: |
+          REF="${GITHUB_REF_NAME:-${GITHUB_REF##*/}}"
+          SAFE_REF=$(echo "$REF" | tr '/\\' '-')
+          echo "safe_ref=$SAFE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Create artifact
+        if: github.event_name != 'pull_request'
+        run: |
+          SAFE_REF="${{ steps.artifact.outputs.safe_ref }}"
+          tar -czvf herald-${SAFE_REF}.tar.gz -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: herald-${{ steps.artifact.outputs.safe_ref }}
+          path: herald-${{ steps.artifact.outputs.safe_ref }}.tar.gz
+          retention-days: 7
