@@ -5,7 +5,7 @@ struct Herald: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "herald",
         abstract: "Modern macOS notification CLI built on UNUserNotificationCenter.",
-        version: "0.1.0",
+        version: HeraldVersion.current,
         subcommands: [Send.self, ListNotifications.self, RemoveNotifications.self],
         defaultSubcommand: Send.self
     )

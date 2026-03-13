@@ -17,15 +17,24 @@ jobs:
         run: ./scripts/build-app.sh
 
       - name: Verify CLI
-        run: .build/Herald.app/Contents/MacOS/herald --version
+        run: |
+          .build/Herald.app/Contents/MacOS/herald --version
+          ARCH=$(uname -m)
+          echo "arch=${ARCH}" >> "$GITHUB_ENV"
 
       - name: Package
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          tar -czvf herald-${VERSION}-macos-arm64.tar.gz -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
+          ARCH="${arch}"
+          ARTIFACT="herald-${VERSION}-macos-${ARCH}.tar.gz"
+          tar -czvf "$ARTIFACT" -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
+          shasum -a 256 "$ARTIFACT" > "$ARTIFACT.sha256"
+          echo "artifact=${ARTIFACT}" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
-          files: herald-*.tar.gz
+          files: |
+            herald-*.tar.gz
+            herald-*.sha256

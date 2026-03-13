@@ -34,16 +34,28 @@ Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-not
 
 ## Install
 
+### From source
+
 ```bash
 make install
 ```
 
-This builds the `.app` bundle (required for `UNUserNotificationCenter` delegate callbacks), copies it to `/usr/local/lib/herald/`, and symlinks the binary to `/usr/local/bin/herald`.
+To install to a custom prefix:
+
+```bash
+./scripts/install.sh --prefix ~/.local
+```
+
+To uninstall:
+
+```bash
+./scripts/install.sh --uninstall
+```
 
 ### Requirements
 
 - macOS 13.0+ (Ventura)
-- Swift 6.0+
+- Swift 6.0+ (for building from source)
 
 ### Why a .app bundle?
 
@@ -162,6 +174,32 @@ herald --message "Tests passed (42/42)" --title "CI" --timeout 5 --sound default
 # Pipeline notification — piped content
 echo "Deploy complete: 3 services updated" | herald --title "Deploy" --timeout 10 --sound default
 ```
+
+## Troubleshooting
+
+### "Notification permission denied" on first run
+
+On first launch, macOS shows a permission dialog — click **Allow**. If you missed it or clicked Don't Allow:
+
+1. Open **System Settings > Notifications**
+2. Find **Herald** in the app list
+3. Toggle **Allow Notifications** on
+
+### Notifications appear but no banner
+
+Check that Herald's notification style is set to **Alerts** (not Banners) in System Settings > Notifications > Herald. Alert style is required for action buttons and text input to be visible.
+
+### "Authorization error" immediately
+
+The app bundle must be ad-hoc signed. If you built manually without `scripts/build-app.sh`, run:
+
+```bash
+codesign --force --deep --sign - .build/Herald.app
+```
+
+### Non-interactive sends still block
+
+If `herald --message "test"` hangs instead of exiting immediately, make sure you're running v0.1.0+ — earlier builds blocked on all sends. Non-interactive notifications (no `--actions` or `--reply`) are fire-and-forget and exit immediately after delivery.
 
 ## License
 

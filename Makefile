@@ -1,4 +1,4 @@
-.PHONY: build-cli build-app install clean
+.PHONY: build-cli build-app install test clean
 
 build-cli:
 	swift build -c release
@@ -8,6 +8,9 @@ build-app: build-cli
 
 install:
 	./scripts/install.sh
+
+test:
+	swift test
 
 clean:
 	swift package clean

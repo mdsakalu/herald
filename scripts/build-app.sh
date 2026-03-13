@@ -18,8 +18,9 @@ mkdir -p "$APP_DIR/Contents/Resources"
 # Copy binary
 cp "${BUILD_DIR}/release/Herald" "$APP_DIR/Contents/MacOS/herald"
 
-# Copy Info.plist
-cp "$PROJECT_DIR/resources/Info.plist" "$APP_DIR/Contents/Info.plist"
+# Stamp version from binary into Info.plist
+VERSION=$("$APP_DIR/Contents/MacOS/herald" --version 2>&1 || true)
+sed "s/__VERSION__/${VERSION}/g" "$PROJECT_DIR/resources/Info.plist" > "$APP_DIR/Contents/Info.plist"
 
 # Ad-hoc sign (required for UNUserNotificationCenter authorization)
 echo "Signing app bundle..."
@@ -27,3 +28,4 @@ codesign --force --deep --sign - "$APP_DIR"
 
 echo "App bundle created at: $APP_DIR"
 echo "Binary: $APP_DIR/Contents/MacOS/herald"
+echo "Version: $VERSION"

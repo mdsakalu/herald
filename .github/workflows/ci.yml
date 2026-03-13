@@ -21,13 +21,18 @@ jobs:
           brew install swiftlint
           swiftlint lint --strict
 
-  build:
+  test:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build
-        run: swift build -c release
+      - name: Test
+        run: swift test
+
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Build app bundle
         run: ./scripts/build-app.sh
