@@ -7,34 +7,62 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify version
+        run: |
+          SOURCE_VERSION=$(swift build -c release 2>&1 > /dev/null; .build/release/Herald --version)
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+          if [ "$SOURCE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Version mismatch: Version.swift=$SOURCE_VERSION, tag=$TAG_VERSION"
+            exit 1
+          fi
 
       - name: Build app bundle
         run: ./scripts/build-app.sh
 
-      - name: Verify CLI
-        run: |
-          .build/Herald.app/Contents/MacOS/herald --version
-          ARCH=$(uname -m)
-          echo "arch=${ARCH}" >> "$GITHUB_ENV"
+      - name: Test
+        run: swift test
 
-      - name: Package
+      - name: Create tarball
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          ARCH="${arch}"
-          ARTIFACT="herald-${VERSION}-macos-${ARCH}.tar.gz"
-          tar -czvf "$ARTIFACT" -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
-          shasum -a 256 "$ARTIFACT" > "$ARTIFACT.sha256"
-          echo "artifact=${ARTIFACT}" >> "$GITHUB_ENV"
+          tar -czvf herald-${{ github.ref_name }}.tar.gz -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
 
-      - name: Create GitHub Release
+      - name: Checksum
+        run: shasum -a 256 herald-${{ github.ref_name }}.tar.gz > herald-${{ github.ref_name }}.tar.gz.sha256
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Generate changelog
+        run: git cliff --latest --strip header > CHANGELOG.md
+
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
           files: |
-            herald-*.tar.gz
-            herald-*.sha256
+            herald-${{ github.ref_name }}.tar.gz
+            herald-${{ github.ref_name }}.tar.gz.sha256
+          body_path: CHANGELOG.md
+          generate_release_notes: false
+
+      - name: Update Homebrew tap
+        uses: mislav/bump-homebrew-formula-action@v3
+        with:
+          formula-name: herald
+          homebrew-tap: mdsakalu/homebrew-tap
+          download-url: https://github.com/mdsakalu/herald/releases/download/${{ github.ref_name }}/herald-${{ github.ref_name }}.tar.gz
+        env:
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
