@@ -45,9 +45,8 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--reply` | String | — | Enable text input; value = placeholder |
 | `--actions` | String | — | Comma-separated buttons (max 4) |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
-| `--sound` | String | — | "default", "none", or sound name |
-| `--image` | String | — | Attachment path (image/GIF/video/audio) |
-| `--group` | String | — | Grouping ID (for replacement) |
+| `--sound` | String | — | "default", "none", "critical", "critical:VOL", or sound name |
+| `--image` | String | — | Attachment path (image/GIF/video) |
 | `--thread` | String | — | Thread ID (visual grouping) |
 | `--level` | Enum | active | passive/active/timeSensitive/critical |
 | `--relevance` | Double | — | Stack priority (0.0–1.0) |
@@ -85,7 +84,6 @@ When using `--json`, herald outputs:
 ```bash
 herald list --json              # List all notifications
 herald remove --id <id>         # Remove by ID
-herald remove --group <group>   # Remove by group
 herald remove --all             # Remove all
 ```
 

@@ -20,8 +20,8 @@ struct Herald: AsyncParsableCommand {
               --actions    Comma-separated button labels (max 4)
               --reply      Enable text input; value is placeholder
               --timeout    Auto-dismiss seconds (0 = wait forever)
-              --sound      "default", "none", or system sound name
-              --image      Attachment: image, GIF, video, audio
+              --sound      "default", "none", "critical", "critical:VOL", or sound name
+              --image      Attachment: image, GIF, video
               --level      passive / active / timeSensitive / critical
               --json       Structured JSON output
 

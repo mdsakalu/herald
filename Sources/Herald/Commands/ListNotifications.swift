@@ -7,9 +7,6 @@ struct ListNotifications: AsyncParsableCommand {
         abstract: "List delivered and pending notifications."
     )
 
-    @Option(name: .long, help: "Filter by group ID.")
-    var group: String?
-
     @Flag(name: .long, help: "Output structured JSON.")
     var json: Bool = false
 
@@ -18,17 +15,15 @@ struct ListNotifications: AsyncParsableCommand {
         let delivered = await manager.getDeliveredNotifications()
         let pending = await manager.getPendingNotifications()
 
-        let filteredDelivered = delivered
-            .filter { group == nil || $0.request.content.targetContentIdentifier == group }
+        let deliveredEntries = delivered
             .map { ["id": $0.request.identifier, "title": $0.request.content.title,
                      "message": $0.request.content.body, "status": "delivered"] }
 
-        let filteredPending = pending
-            .filter { group == nil || $0.content.targetContentIdentifier == group }
+        let pendingEntries = pending
             .map { ["id": $0.identifier, "title": $0.content.title,
                      "message": $0.content.body, "status": "pending"] }
 
-        let entries = filteredDelivered + filteredPending
+        let entries = deliveredEntries + pendingEntries
 
         if json {
             let encoder = JSONEncoder()
@@ -43,15 +38,14 @@ struct ListNotifications: AsyncParsableCommand {
             } else {
                 for entry in entries {
                     let status = entry["status"] ?? "unknown"
-                    let id = entry["id"] ?? "?"
+                    let entryID = entry["id"] ?? "?"
                     let title = entry["title"] ?? ""
                     let message = entry["message"] ?? ""
-                    print("[\(status)] \(id): \(title) — \(message)")
+                    print("[\(status)] \(entryID): \(title) — \(message)")
                 }
             }
         }
 
-        // Exit cleanly — no need to keep run loop alive
         Foundation.exit(0)
     }
 }

@@ -19,13 +19,7 @@ struct Send: AsyncParsableCommand {
     @Option(name: .long, help: "Enable text input field; value is placeholder text.")
     var reply: String?
 
-    @Option(name: .long, help: """
-        Comma-separated button specs (max 4). \
-        Format: Label[!option...][:icon]  \
-        Options: !destructive (red), !auth (require unlock), !foreground (launch app)  \
-        Icon: SF Symbol name after colon  \
-        Examples: "Approve:checkmark.circle,Reject:xmark.circle", "Delete!destructive:trash,Keep"
-        """)
+    @Option(name: .long, help: "Comma-separated button labels (max 4).")
     var actions: String?
 
     @Option(name: .long, help: "Auto-dismiss seconds (0 = sticky until interaction).")
@@ -33,15 +27,12 @@ struct Send: AsyncParsableCommand {
 
     @Option(name: .long, help: """
         Sound: "default", "none", "critical", "critical:VOLUME", or a sound name. \
-        Volume is 0.0-1.0. Critical sounds bypass DND and mute (requires entitlement).
+        Volume is 0.0-1.0. Critical sounds bypass DND and mute.
         """)
     var sound: String?
 
     @Option(name: .long, help: "Attachment file path (image, GIF, video).")
     var image: String?
-
-    @Option(name: .long, help: "Notification grouping ID (for replacement).")
-    var group: String?
 
     @Option(name: .long, help: "Conversation thread ID (visual grouping in NC).")
     var thread: String?
@@ -64,19 +55,18 @@ struct Send: AsyncParsableCommand {
     func run() async throws {
         let body = try resolveBody()
         let notificationID = id ?? UUID().uuidString
-        let actionSpecs = try parseActions()
+        let actionLabels = try parseActions()
 
         let config = NotificationConfig(
             id: notificationID,
             title: title,
             subtitle: subtitle,
             body: body,
-            actions: actionSpecs,
+            actions: actionLabels,
             replyPlaceholder: reply,
             timeout: timeout,
             soundName: sound,
             imagePath: image,
-            groupID: group,
             threadID: thread,
             level: level,
             relevance: relevance,
@@ -113,12 +103,12 @@ struct Send: AsyncParsableCommand {
         return body
     }
 
-    private func parseActions() throws -> [ActionSpec] {
-        let specs = ActionSpec.parseAll(actions)
-        if specs.count > 4 {
+    private func parseActions() throws -> [String] {
+        let labels = actions?.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) } ?? []
+        if labels.count > 4 {
             throw ValidationError("Maximum 4 action buttons allowed.")
         }
-        return specs
+        return labels
     }
 }
 

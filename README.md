@@ -30,7 +30,7 @@ Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-not
 | Threading | `--group` only | `--group` only | **threadIdentifier + group** |
 | Stacking priority | No | No | **relevanceScore (0.0-1.0)** |
 | Notification update | Replace by group | Replace by group | **Replace by ID (in-place)** |
-| Attachments | contentImage only | contentImage only | **Images, GIFs, video, audio** |
+| Attachments | contentImage only | contentImage only | **Images, GIFs, video** |
 | Custom sounds | System only | System only | **Custom sound files** |
 
 ## Install
@@ -104,7 +104,6 @@ herald --message "Step 2 done" --thread "pipeline" --relevance 0.8
 # Notification management
 herald list --json
 herald remove --id <notification-id>
-herald remove --group <group-id>
 herald remove --all
 ```
 
@@ -120,9 +119,8 @@ herald remove --all
 | `--reply` | String | — | Enable text input; value is placeholder text |
 | `--actions` | String | — | Comma-separated button labels (max 4) |
 | `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
-| `--sound` | String | — | `"default"`, `"none"`, or system sound name |
-| `--image` | String | — | Attachment path (image, GIF, video, audio) |
-| `--group` | String | — | Grouping ID (for replacement) |
+| `--sound` | String | — | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name |
+| `--image` | String | — | Attachment path (image, GIF, video) |
 | `--thread` | String | — | Thread ID (visual grouping in NC) |
 | `--level` | Enum | `active` | `passive` / `active` / `timeSensitive` / `critical` |
 | `--relevance` | Double | — | Stack priority (0.0-1.0) |
@@ -130,9 +128,9 @@ herald remove --all
 | `--id` | String | auto UUID | Notification ID (for update/replace) |
 | `--json` | Flag | `false` | Structured JSON output |
 
-**`herald list [--group GROUP] [--json]`** — list delivered and pending notifications
+**`herald list [--json]`** — list delivered and pending notifications
 
-**`herald remove --id ID | --group GROUP | --all`** — remove notifications
+**`herald remove --id ID | --all`** — remove notifications
 
 ### Output Format
 

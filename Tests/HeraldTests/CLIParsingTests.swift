@@ -39,7 +39,6 @@ struct CLIParsingTests {
             "--actions", "Yes,No",
             "--timeout", "30",
             "--sound", "default",
-            "--group", "g1",
             "--thread", "t1",
             "--level", "timeSensitive",
             "--relevance", "0.8",
@@ -55,7 +54,6 @@ struct CLIParsingTests {
         #expect(send.actions == "Yes,No")
         #expect(send.timeout == 30)
         #expect(send.sound == "default")
-        #expect(send.group == "g1")
         #expect(send.thread == "t1")
         #expect(send.level == .timeSensitive)
         #expect(send.relevance == 0.8)
