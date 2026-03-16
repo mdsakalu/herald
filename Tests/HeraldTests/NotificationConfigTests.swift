@@ -5,7 +5,7 @@ import Testing
 @Suite("NotificationConfig")
 struct NotificationConfigTests {
     private func makeConfig(
-        actions: [String] = [],
+        actions: [ActionSpec] = [],
         replyPlaceholder: String? = nil
     ) -> NotificationConfig {
         NotificationConfig(
@@ -34,7 +34,7 @@ struct NotificationConfigTests {
 
     @Test("isInteractive is true with actions")
     func interactiveWithActions() {
-        let config = makeConfig(actions: ["Yes", "No"])
+        let config = makeConfig(actions: ActionSpec.parseAll("Yes,No"))
         #expect(config.isInteractive == true)
     }
 
@@ -46,7 +46,13 @@ struct NotificationConfigTests {
 
     @Test("isInteractive is true with both actions and reply")
     func interactiveWithBoth() {
-        let config = makeConfig(actions: ["Submit"], replyPlaceholder: "Type...")
+        let config = makeConfig(actions: ActionSpec.parseAll("Submit"), replyPlaceholder: "Type...")
         #expect(config.isInteractive == true)
+    }
+
+    @Test("actionLabels extracts labels from specs")
+    func actionLabels() {
+        let config = makeConfig(actions: ActionSpec.parseAll("Approve:checkmark,Reject!destructive:xmark"))
+        #expect(config.actionLabels == ["Approve", "Reject"])
     }
 }

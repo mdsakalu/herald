@@ -19,16 +19,25 @@ struct Send: AsyncParsableCommand {
     @Option(name: .long, help: "Enable text input field; value is placeholder text.")
     var reply: String?
 
-    @Option(name: .long, help: "Comma-separated button labels (up to 4).")
+    @Option(name: .long, help: """
+        Comma-separated button specs (max 4). \
+        Format: Label[!option...][:icon]  \
+        Options: !destructive (red), !auth (require unlock), !foreground (launch app)  \
+        Icon: SF Symbol name after colon  \
+        Examples: "Approve:checkmark.circle,Reject:xmark.circle", "Delete!destructive:trash,Keep"
+        """)
     var actions: String?
 
     @Option(name: .long, help: "Auto-dismiss seconds (0 = sticky until interaction).")
     var timeout: Int = 0
 
-    @Option(name: .long, help: "Sound name (\"default\", \"none\", or system sound name).")
+    @Option(name: .long, help: """
+        Sound: "default", "none", "critical", "critical:VOLUME", or a sound name. \
+        Volume is 0.0-1.0. Critical sounds bypass DND and mute (requires entitlement).
+        """)
     var sound: String?
 
-    @Option(name: .long, help: "Attachment file path (image, GIF, video, audio).")
+    @Option(name: .long, help: "Attachment file path (image, GIF, video).")
     var image: String?
 
     @Option(name: .long, help: "Notification grouping ID (for replacement).")
@@ -55,14 +64,14 @@ struct Send: AsyncParsableCommand {
     func run() async throws {
         let body = try resolveBody()
         let notificationID = id ?? UUID().uuidString
-        let actionLabels = try parseActions()
+        let actionSpecs = try parseActions()
 
         let config = NotificationConfig(
             id: notificationID,
             title: title,
             subtitle: subtitle,
             body: body,
-            actions: actionLabels,
+            actions: actionSpecs,
             replyPlaceholder: reply,
             timeout: timeout,
             soundName: sound,
@@ -77,14 +86,12 @@ struct Send: AsyncParsableCommand {
         let manager = NotificationManager()
 
         if config.isInteractive {
-            // Interactive: block until user responds or timeout
             let signalHandler = SignalHandler(notificationID: notificationID, manager: manager, jsonOutput: json)
             signalHandler.install()
 
             let response = try await manager.sendAndWait(config: config)
             print(OutputFormatter.format(response: response, asJSON: json))
         } else {
-            // Fire-and-forget: deliver and exit immediately
             try await manager.send(config: config)
         }
     }
@@ -106,12 +113,12 @@ struct Send: AsyncParsableCommand {
         return body
     }
 
-    private func parseActions() throws -> [String] {
-        let labels = actions?.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) } ?? []
-        if labels.count > 4 {
+    private func parseActions() throws -> [ActionSpec] {
+        let specs = ActionSpec.parseAll(actions)
+        if specs.count > 4 {
             throw ValidationError("Maximum 4 action buttons allowed.")
         }
-        return labels
+        return specs
     }
 }
 

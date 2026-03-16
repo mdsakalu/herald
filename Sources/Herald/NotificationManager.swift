@@ -7,7 +7,7 @@ struct NotificationConfig: Sendable {
     let title: String
     let subtitle: String?
     let body: String
-    let actions: [String]
+    let actions: [ActionSpec]
     let replyPlaceholder: String?
     let timeout: Int
     let soundName: String?
@@ -21,17 +21,20 @@ struct NotificationConfig: Sendable {
     var isInteractive: Bool {
         !actions.isEmpty || replyPlaceholder != nil
     }
+
+    var actionLabels: [String] {
+        actions.map(\.label)
+    }
 }
 
 final class NotificationManager: @unchecked Sendable {
     private let center = UNUserNotificationCenter.current()
-    // Strong reference to keep delegate alive (center.delegate is weak)
     private var activeDelegate: NotificationDelegate?
 
     func send(config: NotificationConfig) async throws {
         try await authorize()
 
-        let categoryID = registerCategory(actions: config.actions, replyPlaceholder: config.replyPlaceholder)
+        let categoryID = registerCategory(config: config)
         let content = try buildContent(config: config, categoryID: categoryID)
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
@@ -42,7 +45,7 @@ final class NotificationManager: @unchecked Sendable {
     func sendAndWait(config: NotificationConfig) async throws -> NotificationResponse {
         try await authorize()
 
-        let categoryID = registerCategory(actions: config.actions, replyPlaceholder: config.replyPlaceholder)
+        let categoryID = registerCategory(config: config)
         let content = try buildContent(config: config, categoryID: categoryID)
 
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
@@ -126,7 +129,7 @@ final class NotificationManager: @unchecked Sendable {
             let delegate = NotificationDelegate(
                 resumeOnce: resumeOnce,
                 continuation: continuation,
-                actionLabels: config.actions,
+                actionLabels: config.actionLabels,
                 deliveredAt: deliveredAt
             )
             self.activeDelegate = delegate
@@ -149,18 +152,42 @@ final class NotificationManager: @unchecked Sendable {
         }
     }
 
-    private func resolveSound(_ name: String) -> UNNotificationSound? {
-        switch name.lowercased() {
-        case "none": return nil
-        case "default": return .default
-        default: return UNNotificationSound(named: UNNotificationSoundName(rawValue: name))
+    /// Resolve sound specification.
+    ///
+    /// Formats:
+    ///   - "none" — no sound
+    ///   - "default" — system default
+    ///   - "critical" — default critical sound (bypasses DND/mute)
+    ///   - "critical:0.8" — critical with volume (0.0-1.0)
+    ///   - "Glass" — named system sound from Library/Sounds
+    private func resolveSound(_ spec: String) -> UNNotificationSound? {
+        let lower = spec.lowercased()
+
+        if lower == "none" { return nil }
+        if lower == "default" { return .default }
+        if lower == "critical" { return .defaultCritical }
+
+        if lower.hasPrefix("critical:") {
+            let rest = String(spec.dropFirst("critical:".count))
+            if let volume = Float(rest) {
+                return UNNotificationSound.defaultCriticalSound(withAudioVolume: max(0.0, min(1.0, volume)))
+            }
+            // Named critical sound: "critical:SoundName" or "critical:SoundName:0.5"
+            let parts = rest.split(separator: ":", maxSplits: 1)
+            let name = UNNotificationSoundName(rawValue: String(parts[0]))
+            if parts.count > 1, let volume = Float(parts[1]) {
+                return .criticalSoundNamed(name, withAudioVolume: max(0.0, min(1.0, volume)))
+            }
+            return .criticalSoundNamed(name)
         }
+
+        return UNNotificationSound(named: UNNotificationSoundName(rawValue: spec))
     }
 
-    private func registerCategory(actions: [String], replyPlaceholder: String?) -> String {
+    private func registerCategory(config: NotificationConfig) -> String {
         var notificationActions: [UNNotificationAction] = []
 
-        if let replyPlaceholder {
+        if let replyPlaceholder = config.replyPlaceholder {
             notificationActions.append(UNTextInputNotificationAction(
                 identifier: "__reply__",
                 title: "Reply",
@@ -170,8 +197,8 @@ final class NotificationManager: @unchecked Sendable {
             ))
         }
 
-        for label in actions {
-            notificationActions.append(UNNotificationAction(identifier: label, title: label, options: []))
+        for spec in config.actions {
+            notificationActions.append(spec.toAction())
         }
 
         let categoryID = notificationActions.isEmpty
