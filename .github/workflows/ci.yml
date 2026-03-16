@@ -15,7 +15,7 @@ jobs:
   lint:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: SwiftLint
         run: |
           brew install swiftlint
@@ -24,7 +24,7 @@ jobs:
   test:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Test
         run: swift test
@@ -32,7 +32,7 @@ jobs:
   build:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build app bundle
         run: ./scripts/build-app.sh
