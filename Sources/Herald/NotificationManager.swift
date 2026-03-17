@@ -228,7 +228,41 @@ final class NotificationManager: @unchecked Sendable {
         }
         try FileManager.default.copyItem(at: url, to: tempFile)
 
-        return try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFile, options: nil)
+        var options: [String: Any] = [:]
+
+        // Provide UTI type hint based on file extension
+        if let typeHint = utiTypeHint(for: url.pathExtension) {
+            options[UNNotificationAttachmentOptionsTypeHintKey] = typeHint
+        }
+
+        // For video/GIF, use the first frame as thumbnail
+        let videoExts = ["mp4", "m4v", "mov", "mpeg", "mpg", "avi"]
+        let ext = url.pathExtension.lowercased()
+        if videoExts.contains(ext) || ext == "gif" {
+            options[UNNotificationAttachmentOptionsThumbnailTimeKey] = NSNumber(value: 0)
+        }
+
+        return try UNNotificationAttachment(
+            identifier: UUID().uuidString,
+            url: tempFile,
+            options: options.isEmpty ? nil : options
+        )
+    }
+
+    private func utiTypeHint(for ext: String) -> String? {
+        switch ext.lowercased() {
+        case "jpg", "jpeg": return "public.jpeg"
+        case "png": return "public.png"
+        case "gif": return "com.compuserve.gif"
+        case "mp4", "m4v": return "public.mpeg-4"
+        case "mov": return "com.apple.quicktime-movie"
+        case "mpeg", "mpg": return "public.mpeg"
+        case "avi": return "public.avi"
+        case "mp3": return "public.mp3"
+        case "wav": return "com.microsoft.waveform-audio"
+        case "aiff", "aif": return "public.aiff-audio"
+        default: return nil
+        }
     }
 
     private func writeStderr(_ message: String) {
