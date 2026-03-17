@@ -28,9 +28,12 @@ struct RemoveNotifications: AsyncParsableCommand {
 
         if all {
             manager.removeAllNotifications()
+            // Wait for async removal to complete
+            try await Task.sleep(for: .milliseconds(500))
             print("Removed all notifications.")
         } else if let id {
             manager.removeNotifications(ids: [id])
+            try await Task.sleep(for: .milliseconds(500))
             print("Removed notification: \(id)")
         }
 
