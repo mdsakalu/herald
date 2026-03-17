@@ -19,7 +19,7 @@ struct Send: AsyncParsableCommand {
     @Option(name: .long, help: "Enable text input field; value is placeholder text.")
     var reply: String?
 
-    @Option(name: .long, help: "Comma-separated button labels (max 4).")
+    @Option(name: .long, help: "Comma-separated button labels (max 10; macOS shows ~4 in compact view).")
     var actions: String?
 
     @Option(name: .long, help: "Auto-dismiss seconds (0 = sticky until interaction).")
@@ -105,8 +105,8 @@ struct Send: AsyncParsableCommand {
 
     private func parseActions() throws -> [String] {
         let labels = actions?.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) } ?? []
-        if labels.count > 4 {
-            throw ValidationError("Maximum 4 action buttons allowed.")
+        if labels.count > 10 {
+            throw ValidationError("Maximum 10 action buttons allowed.")
         }
         return labels
     }

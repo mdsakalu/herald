@@ -43,7 +43,7 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--title` | String | "Herald" | Title text |
 | `--subtitle` | String | — | Subtitle text |
 | `--reply` | String | — | Enable text input; value = placeholder |
-| `--actions` | String | — | Comma-separated buttons (max 4) |
+| `--actions` | String | — | Comma-separated buttons (max 10) |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
 | `--sound` | String | — | "default", "none", "critical", "critical:VOL", or sound name |
 | `--image` | String | — | Attachment path (image/GIF thumbnail) |

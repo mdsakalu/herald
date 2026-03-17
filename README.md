@@ -117,7 +117,7 @@ herald remove --all
 | `--title` | String | `"Herald"` | Title text |
 | `--subtitle` | String | — | Subtitle text |
 | `--reply` | String | — | Enable text input; value is placeholder text |
-| `--actions` | String | — | Comma-separated button labels (max 4) |
+| `--actions` | String | — | Comma-separated button labels (max 10) |
 | `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
 | `--sound` | String | — | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name |
 | `--image` | String | — | Attachment path (image or GIF thumbnail) |

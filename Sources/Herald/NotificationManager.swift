@@ -43,12 +43,52 @@ final class NotificationManager: @unchecked Sendable {
         let categoryID = registerCategory(actions: config.actions, replyPlaceholder: config.replyPlaceholder)
         let content = try buildContent(config: config, categoryID: categoryID)
 
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
-        let request = UNNotificationRequest(identifier: config.id, content: content, trigger: trigger)
-        try await center.add(request)
+        // Set up delegate BEFORE adding the request (per Apple docs:
+        // "assign your delegate object before performing any tasks that might interact with that delegate")
+        let resumeOnce = ResumeOnce()
+        let response: NotificationResponse = await withCheckedContinuation { continuation in
+            let delegate = NotificationDelegate(
+                resumeOnce: resumeOnce,
+                continuation: continuation,
+                actionLabels: config.actions,
+                deliveredAt: nil
+            )
+            self.activeDelegate = delegate
+            center.delegate = delegate
 
-        let deliveredAt = Date()
-        return await waitForResponse(config: config, deliveredAt: deliveredAt)
+            // Schedule the notification after delegate is set
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+            let request = UNNotificationRequest(identifier: config.id, content: content, trigger: trigger)
+            center.add(request) { error in
+                if let error {
+                    resumeOnce.resume(continuation, returning: NotificationResponse(
+                        activationType: .closed,
+                        activationValue: nil,
+                        activationValueIndex: nil,
+                        deliveredAt: nil,
+                        activationAt: Date(),
+                        userText: "Error: \(error.localizedDescription)"
+                    ))
+                }
+            }
+
+            if config.timeout > 0 {
+                DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(config.timeout)) {
+                    self.center.removeDeliveredNotifications(withIdentifiers: [config.id])
+                    self.center.removePendingNotificationRequests(withIdentifiers: [config.id])
+                    resumeOnce.resume(continuation, returning: NotificationResponse(
+                        activationType: .timeout,
+                        activationValue: nil,
+                        activationValueIndex: nil,
+                        deliveredAt: nil,
+                        activationAt: Date(),
+                        userText: nil
+                    ))
+                }
+            }
+        }
+
+        return response
     }
 
     func removeNotifications(ids: [String]) {
@@ -114,36 +154,6 @@ final class NotificationManager: @unchecked Sendable {
         }
 
         return content
-    }
-
-    private func waitForResponse(config: NotificationConfig, deliveredAt: Date) async -> NotificationResponse {
-        let resumeOnce = ResumeOnce()
-
-        return await withCheckedContinuation { continuation in
-            let delegate = NotificationDelegate(
-                resumeOnce: resumeOnce,
-                continuation: continuation,
-                actionLabels: config.actions,
-                deliveredAt: deliveredAt
-            )
-            self.activeDelegate = delegate
-            center.delegate = delegate
-
-            if config.timeout > 0 {
-                DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(config.timeout)) {
-                    self.center.removeDeliveredNotifications(withIdentifiers: [config.id])
-                    self.center.removePendingNotificationRequests(withIdentifiers: [config.id])
-                    resumeOnce.resume(continuation, returning: NotificationResponse(
-                        activationType: .timeout,
-                        activationValue: nil,
-                        activationValueIndex: nil,
-                        deliveredAt: deliveredAt,
-                        activationAt: Date(),
-                        userText: nil
-                    ))
-                }
-            }
-        }
     }
 
     /// Resolve sound specification.

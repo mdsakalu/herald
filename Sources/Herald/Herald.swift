@@ -17,7 +17,7 @@ struct Herald: AsyncParsableCommand {
             KEY FLAGS (see 'herald send --help' for all):
               --message    Notification body (or pipe via stdin)
               --title      Title text (default: Herald)
-              --actions    Comma-separated button labels (max 4)
+              --actions    Comma-separated button labels (max 10)
               --reply      Enable text input; value is placeholder
               --timeout    Auto-dismiss seconds (0 = wait forever)
               --sound      "default", "none", "critical", "critical:VOL", or sound name
