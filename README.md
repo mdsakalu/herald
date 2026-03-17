@@ -30,7 +30,7 @@ Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-not
 | Threading | `--group` only | `--group` only | **threadIdentifier + group** |
 | Stacking priority | No | No | **relevanceScore (0.0-1.0)** |
 | Notification update | Replace by group | Replace by group | **Replace by ID (in-place)** |
-| Attachments | contentImage only | contentImage only | **Images, GIFs, video** |
+| Attachments | contentImage only | contentImage only | **Images, GIFs (static thumbnail)** |
 | Custom sounds | System only | System only | **Custom sound files** |
 
 ## Install
@@ -120,7 +120,7 @@ herald remove --all
 | `--actions` | String | — | Comma-separated button labels (max 4) |
 | `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
 | `--sound` | String | — | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name |
-| `--image` | String | — | Attachment path (image, GIF, video) |
+| `--image` | String | — | Attachment path (image or GIF thumbnail) |
 | `--thread` | String | — | Thread ID (visual grouping in NC) |
 | `--level` | Enum | `active` | `passive` / `active` / `timeSensitive` / `critical` |
 | `--relevance` | Double | — | Stack priority (0.0-1.0) |

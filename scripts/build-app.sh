@@ -22,6 +22,20 @@ cp "${BUILD_DIR}/release/Herald" "$APP_DIR/Contents/MacOS/herald"
 VERSION=$("$APP_DIR/Contents/MacOS/herald" --version 2>&1 || true)
 sed "s/__VERSION__/${VERSION}/g" "$PROJECT_DIR/resources/Info.plist" > "$APP_DIR/Contents/Info.plist"
 
+# Compile icon from .icon file (produces Assets.car with proper masking)
+echo "Compiling app icon..."
+xcrun actool "$PROJECT_DIR/resources/herald.icon" \
+  --compile "$APP_DIR/Contents/Resources" \
+  --app-icon AppIcon \
+  --enable-on-demand-resources NO \
+  --target-device mac \
+  --platform macosx \
+  --minimum-deployment-target 13.0 \
+  --output-partial-info-plist /dev/null
+
+# Also copy .icns as fallback for older macOS
+cp "$PROJECT_DIR/resources/AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+
 # Ad-hoc sign (required for UNUserNotificationCenter authorization)
 echo "Signing app bundle..."
 codesign --force --deep --sign - "$APP_DIR"

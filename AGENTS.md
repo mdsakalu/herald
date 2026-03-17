@@ -46,7 +46,7 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--actions` | String | — | Comma-separated buttons (max 4) |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
 | `--sound` | String | — | "default", "none", "critical", "critical:VOL", or sound name |
-| `--image` | String | — | Attachment path (image/GIF/video) |
+| `--image` | String | — | Attachment path (image/GIF thumbnail) |
 | `--thread` | String | — | Thread ID (visual grouping) |
 | `--level` | Enum | active | passive/active/timeSensitive/critical |
 | `--relevance` | Double | — | Stack priority (0.0–1.0) |
