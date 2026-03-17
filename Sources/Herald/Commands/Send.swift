@@ -31,7 +31,7 @@ struct Send: AsyncParsableCommand {
         """)
     var sound: String?
 
-    @Option(name: .long, help: "Attachment file path (image or GIF thumbnail).")
+    @Option(name: .long, help: "Attachment file path (png, jpg, jpeg, heic, heif, tif, tiff, bmp only).")
     var image: String?
 
     @Option(name: .long, help: "Conversation thread ID (visual grouping in NC).")

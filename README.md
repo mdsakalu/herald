@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="resources/AppIcon-1024.png" width="128" />
+
 # herald
 
 Modern macOS notification CLI built on UNUserNotificationCenter
@@ -16,7 +18,7 @@ Modern macOS notification CLI built on UNUserNotificationCenter
 
 ## About
 
-Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-notifier](https://github.com/julienXX/terminal-notifier) with a single Swift CLI built on Apple's modern `UNUserNotificationCenter` API — no deprecated `NSUserNotification`, no private API hacks. Send notifications, capture user responses with action buttons and text input, attach rich media, and manage the notification lifecycle from the terminal.
+Herald builds upon [alerter](https://github.com/vjeantet/alerter) and [terminal-notifier](https://github.com/julienXX/terminal-notifier) with a single Swift CLI built on Apple's modern `UNUserNotificationCenter` API — no deprecated `NSUserNotification`, no private API hacks. Send notifications, capture user responses with action buttons and text input, attach still images, and manage the notification lifecycle from the terminal.
 
 ### What's new vs alerter/terminal-notifier
 
@@ -30,7 +32,7 @@ Herald replaces [alerter](https://github.com/vjeantet/alerter) and [terminal-not
 | Threading | `--group` only | `--group` only | **threadIdentifier + group** |
 | Stacking priority | No | No | **relevanceScore (0.0-1.0)** |
 | Notification update | Replace by group | Replace by group | **Replace by ID (in-place)** |
-| Attachments | contentImage only | contentImage only | **Images, GIFs (static thumbnail)** |
+| Attachments | contentImage only | contentImage only | **Still images only** |
 | Custom sounds | System only | System only | **Custom sound files** |
 
 ## Install
@@ -72,6 +74,14 @@ brew uninstall herald
 
 `UNUserNotificationCenter` requires a registered app bundle to receive delegate callbacks (button clicks, text input). Herald packages as `Herald.app` with `LSUIElement: true` (no dock icon) — it behaves exactly like a CLI tool but gets full notification API access.
 
+## Good Fits
+
+- Build, test, and deploy completion alerts from scripts or CI
+- Human approval gates during automated workflows
+- Collecting short text feedback without leaving the terminal flow
+- Updating or replacing progress notifications for long-running tasks
+- Grouping related notifications with `--thread` and prioritizing them with `--relevance`
+
 ## Usage
 
 ```bash
@@ -87,8 +97,11 @@ herald --message "Feedback?" --reply "Type here..." --timeout 300 --json
 # Text input + buttons (alerter can't do this)
 herald --message "Review?" --reply "Comments..." --actions "Approve,Reject" --timeout 60 --json
 
-# Rich media attachment
+# Image attachment
 herald --message "Build artifact" --image ./screenshot.png --timeout 10
+
+# Supported attachment formats
+# png, jpg, jpeg, heic, heif, tif, tiff, bmp
 
 # Pipe content via stdin
 echo "Build complete" | herald --title "CI" --timeout 5 --sound default
@@ -120,7 +133,7 @@ herald remove --all
 | `--actions` | String | — | Comma-separated button labels (max 10) |
 | `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
 | `--sound` | String | — | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name |
-| `--image` | String | — | Attachment path (image or GIF thumbnail) |
+| `--image` | String | — | Attachment path (`png`, `jpg`, `jpeg`, `heic`, `heif`, `tif`, `tiff`, `bmp` only) |
 | `--thread` | String | — | Thread ID (visual grouping in NC) |
 | `--level` | Enum | `active` | `passive` / `active` / `timeSensitive` / `critical` |
 | `--relevance` | Double | — | Stack priority (0.0-1.0) |

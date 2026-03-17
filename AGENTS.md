@@ -35,6 +35,15 @@ herald --message "Describe the issue" --reply "Type here..." --timeout 300 --jso
 herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reject" --timeout 300 --json
 ```
 
+## Guidance for Agents
+
+- Use Herald for user-facing status updates, approval gates, and short feedback requests.
+- Prefer `--json` whenever your next step depends on the user's response.
+- Set a nonzero `--timeout` for blocking prompts so the agent can recover if the user is away.
+- Keep action labels short and concrete; they render better and are easier to branch on.
+- Use `--level passive` for FYI notifications and `active` or higher only when you need attention.
+- Use `--thread` for related notifications and `--id` when you want later sends to replace earlier ones.
+
 ## CLI Flags
 
 | Flag | Type | Default | Description |
@@ -46,7 +55,7 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--actions` | String | — | Comma-separated buttons (max 10) |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
 | `--sound` | String | — | "default", "none", "critical", "critical:VOL", or sound name |
-| `--image` | String | — | Attachment path (image/GIF thumbnail) |
+| `--image` | String | — | Attachment path (`png`, `jpg`, `jpeg`, `heic`, `heif`, `tif`, `tiff`, `bmp` only) |
 | `--thread` | String | — | Thread ID (visual grouping) |
 | `--level` | Enum | active | passive/active/timeSensitive/critical |
 | `--relevance` | Double | — | Stack priority (0.0–1.0) |

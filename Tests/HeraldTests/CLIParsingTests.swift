@@ -100,7 +100,7 @@ struct CLIParsingTests {
         }
     }
 
-    @Test("More than 4 actions in flag value is parseable but validated at runtime")
+    @Test("More than 10 actions in flag value is parseable but validated at runtime")
     func actionsParseableButValidated() throws {
         // Parsing succeeds — validation happens in run()
         let command = try Herald.parseAsRoot(["--message", "x", "--actions", "A,B,C,D,E"])

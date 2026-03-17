@@ -6,6 +6,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 PREFIX="${PREFIX:-/usr/local}"
 INSTALL_DIR="${PREFIX}/lib/herald"
 BIN_DIR="${PREFIX}/bin"
+APP_DIR="${INSTALL_DIR}/app"
+APP_BUNDLE="${APP_DIR}/Herald.app"
 
 usage() {
     echo "Usage: $0 [--prefix PREFIX] [--uninstall]"
@@ -35,7 +37,14 @@ do_uninstall() {
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --prefix) PREFIX="$2"; INSTALL_DIR="${PREFIX}/lib/herald"; BIN_DIR="${PREFIX}/bin"; shift 2 ;;
+        --prefix)
+            PREFIX="$2"
+            INSTALL_DIR="${PREFIX}/lib/herald"
+            BIN_DIR="${PREFIX}/bin"
+            APP_DIR="${INSTALL_DIR}/app"
+            APP_BUNDLE="${APP_DIR}/Herald.app"
+            shift 2
+            ;;
         --uninstall) do_uninstall ;;
         --help|-h) usage ;;
         *) echo "Unknown option: $1"; usage ;;
@@ -63,14 +72,23 @@ run() {
 
 run mkdir -p "$INSTALL_DIR"
 run mkdir -p "$BIN_DIR"
+run mkdir -p "$APP_DIR"
 
 run rm -rf "$INSTALL_DIR/Herald.app"
-run cp -R "$PROJECT_DIR/.build/Herald.app" "$INSTALL_DIR/Herald.app"
-run ln -sf "$INSTALL_DIR/Herald.app/Contents/MacOS/herald" "$BIN_DIR/herald"
+run rm -rf "$APP_BUNDLE"
+run cp -R "$PROJECT_DIR/.build/Herald.app" "$APP_BUNDLE"
+run ln -sf "$APP_BUNDLE/Contents/MacOS/herald" "$BIN_DIR/herald"
+
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [ -x "$LSREGISTER" ]; then
+    "$LSREGISTER" -u "$INSTALL_DIR/Herald.app" >/dev/null 2>&1 || true
+    "$LSREGISTER" -u "$APP_BUNDLE" >/dev/null 2>&1 || true
+    "$LSREGISTER" -f "$APP_BUNDLE" >/dev/null 2>&1 || true
+fi
 
 echo ""
 echo "Herald installed successfully."
-echo "  App: $INSTALL_DIR/Herald.app"
+echo "  App: $APP_BUNDLE"
 echo "  CLI: $BIN_DIR/herald"
 echo ""
 echo "Uninstall: $0 --uninstall${PREFIX:+ --prefix $PREFIX}"
