@@ -42,7 +42,11 @@ jobs:
           tar -czvf herald-${{ github.ref_name }}.tar.gz -C .build Herald.app -C ${{ github.workspace }} README.md LICENSE
 
       - name: Checksum
-        run: shasum -a 256 herald-${{ github.ref_name }}.tar.gz > herald-${{ github.ref_name }}.tar.gz.sha256
+        id: checksum
+        run: |
+          SHA=$(shasum -a 256 herald-${{ github.ref_name }}.tar.gz | awk '{print $1}')
+          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+          echo "$SHA  herald-${{ github.ref_name }}.tar.gz" > herald-${{ github.ref_name }}.tar.gz.sha256
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -67,5 +71,6 @@ jobs:
           formula-name: herald
           homebrew-tap: mdsakalu/homebrew-tap
           download-url: https://github.com/mdsakalu/herald/releases/download/${{ github.ref_name }}/herald-${{ github.ref_name }}.tar.gz
+          download-sha256: ${{ steps.checksum.outputs.sha256 }}
         env:
           COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
