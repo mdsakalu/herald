@@ -2,6 +2,7 @@ import Foundation
 
 enum ActivationType: String, Sendable, Codable {
     case actionClicked
+    case defaultActionClicked
     case replied
     case dismissed
     case timeout

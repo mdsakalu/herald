@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 @testable import Herald
@@ -6,6 +7,7 @@ import Testing
 struct NotificationConfigTests {
     private func makeConfig(
         actions: [String] = [],
+        onClickAction: NotificationClickAction? = nil,
         replyPlaceholder: String? = nil
     ) -> NotificationConfig {
         NotificationConfig(
@@ -14,6 +16,7 @@ struct NotificationConfigTests {
             subtitle: nil,
             body: "Body",
             actions: actions,
+            onClickAction: onClickAction,
             replyPlaceholder: replyPlaceholder,
             timeout: 0,
             soundName: nil,
@@ -47,5 +50,11 @@ struct NotificationConfigTests {
     func interactiveWithBoth() {
         let config = makeConfig(actions: ["Submit"], replyPlaceholder: "Type...")
         #expect(config.isInteractive == true)
+    }
+
+    @Test("isInteractive stays false for on-click-only notifications")
+    func onClickIsNotInteractive() {
+        let config = makeConfig(onClickAction: .open(URL(fileURLWithPath: "/tmp/test.md")))
+        #expect(config.isInteractive == false)
     }
 }

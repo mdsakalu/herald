@@ -22,6 +22,9 @@ struct Send: AsyncParsableCommand {
     @Option(name: .long, help: "Comma-separated button labels (max 10; macOS shows ~4 in compact view).")
     var actions: String?
 
+    @Option(name: .long, help: #"Action to perform when the notification body is clicked. V1 supports "open:<url-or-path>"."#)
+    var onClick: String?
+
     @Option(name: .long, help: "Auto-dismiss seconds (0 = sticky until interaction).")
     var timeout: Int = 0
 
@@ -56,6 +59,7 @@ struct Send: AsyncParsableCommand {
         let body = try resolveBody()
         let notificationID = id ?? UUID().uuidString
         let actionLabels = try parseActions()
+        let clickAction = try parseOnClick()
 
         let config = NotificationConfig(
             id: notificationID,
@@ -63,6 +67,7 @@ struct Send: AsyncParsableCommand {
             subtitle: subtitle,
             body: body,
             actions: actionLabels,
+            onClickAction: clickAction,
             replyPlaceholder: reply,
             timeout: timeout,
             soundName: sound,
@@ -109,6 +114,11 @@ struct Send: AsyncParsableCommand {
             throw ValidationError("Maximum 10 action buttons allowed.")
         }
         return labels
+    }
+
+    private func parseOnClick() throws -> NotificationClickAction? {
+        guard let onClick else { return nil }
+        return try NotificationClickAction.parse(onClick)
     }
 }
 

@@ -37,6 +37,7 @@ struct CLIParsingTests {
             "--subtitle", "Sub",
             "--reply", "Type here",
             "--actions", "Yes,No",
+            "--on-click", "open:https://example.com",
             "--timeout", "30",
             "--sound", "default",
             "--thread", "t1",
@@ -52,6 +53,7 @@ struct CLIParsingTests {
         #expect(send.subtitle == "Sub")
         #expect(send.reply == "Type here")
         #expect(send.actions == "Yes,No")
+        #expect(send.onClick == "open:https://example.com")
         #expect(send.timeout == 30)
         #expect(send.sound == "default")
         #expect(send.thread == "t1")
@@ -73,6 +75,7 @@ struct CLIParsingTests {
         #expect(send.subtitle == nil)
         #expect(send.reply == nil)
         #expect(send.actions == nil)
+        #expect(send.onClick == nil)
     }
 
     @Test("Remove requires exactly one option")

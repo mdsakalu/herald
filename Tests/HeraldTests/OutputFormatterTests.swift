@@ -85,6 +85,25 @@ struct OutputFormatterTests {
         #expect(parsed["deliveredAt"] == nil || parsed["deliveredAt"] is NSNull)
     }
 
+    @Test("JSON output for default action click has no activation value")
+    func jsonDefaultActionClicked() throws {
+        let response = NotificationResponse(
+            activationType: .defaultActionClicked,
+            activationValue: nil,
+            activationValueIndex: nil,
+            deliveredAt: sampleDate,
+            activationAt: sampleDate.addingTimeInterval(2),
+            userText: nil
+        )
+        let output = OutputFormatter.format(response: response, asJSON: true)
+        let data = try #require(output.data(using: .utf8))
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let parsed = try #require(json)
+
+        #expect(parsed["activationType"] as? String == "defaultActionClicked")
+        #expect(parsed["activationValue"] == nil || parsed["activationValue"] is NSNull)
+    }
+
     @Test("Plain text output for action click")
     func plainActionClicked() {
         let response = NotificationResponse(
@@ -139,5 +158,19 @@ struct OutputFormatterTests {
         )
         let output = OutputFormatter.format(response: response, asJSON: false)
         #expect(output == "@DISMISSED")
+    }
+
+    @Test("Plain text output for default action click")
+    func plainDefaultActionClicked() {
+        let response = NotificationResponse(
+            activationType: .defaultActionClicked,
+            activationValue: nil,
+            activationValueIndex: nil,
+            deliveredAt: sampleDate,
+            activationAt: sampleDate,
+            userText: nil
+        )
+        let output = OutputFormatter.format(response: response, asJSON: false)
+        #expect(output == "@DEFAULTACTIONCLICKED")
     }
 }

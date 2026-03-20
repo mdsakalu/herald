@@ -9,6 +9,7 @@ struct NotificationConfig: Sendable {
     let subtitle: String?
     let body: String
     let actions: [String]
+    let onClickAction: NotificationClickAction?
     let replyPlaceholder: String?
     let timeout: Int
     let soundName: String?
@@ -25,7 +26,7 @@ struct NotificationConfig: Sendable {
 
 final class NotificationManager: @unchecked Sendable {
     private let center = UNUserNotificationCenter.current()
-    private var activeDelegate: NotificationDelegate?
+    private let runtime: NotificationRuntime
     static let supportedAttachmentTypes: [String: UTType] = [
         "bmp": .bmp,
         "heic": .heic,
@@ -36,6 +37,11 @@ final class NotificationManager: @unchecked Sendable {
         "tif": .tiff,
         "tiff": .tiff,
     ]
+
+    init(runtime: NotificationRuntime = .shared) {
+        self.runtime = runtime
+        runtime.installDelegate()
+    }
 
     func send(config: NotificationConfig) async throws {
         try await authorize()
@@ -58,21 +64,19 @@ final class NotificationManager: @unchecked Sendable {
         // "assign your delegate object before performing any tasks that might interact with that delegate")
         let resumeOnce = ResumeOnce()
         let response: NotificationResponse = await withCheckedContinuation { continuation in
-            let delegate = NotificationDelegate(
+            self.runtime.beginInteractiveSession(
                 resumeOnce: resumeOnce,
                 continuation: continuation,
                 actionLabels: config.actions,
                 deliveredAt: nil
             )
-            self.activeDelegate = delegate
-            center.delegate = delegate
 
             // Schedule the notification after delegate is set
             let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
             let request = UNNotificationRequest(identifier: config.id, content: content, trigger: trigger)
             center.add(request) { error in
                 if let error {
-                    resumeOnce.resume(continuation, returning: NotificationResponse(
+                    self.runtime.finishInteractiveSession(with: NotificationResponse(
                         activationType: .closed,
                         activationValue: nil,
                         activationValueIndex: nil,
@@ -87,7 +91,7 @@ final class NotificationManager: @unchecked Sendable {
                 DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(config.timeout)) {
                     self.center.removeDeliveredNotifications(withIdentifiers: [config.id])
                     self.center.removePendingNotificationRequests(withIdentifiers: [config.id])
-                    resumeOnce.resume(continuation, returning: NotificationResponse(
+                    self.runtime.finishInteractiveSession(with: NotificationResponse(
                         activationType: .timeout,
                         activationValue: nil,
                         activationValueIndex: nil,
@@ -159,6 +163,7 @@ final class NotificationManager: @unchecked Sendable {
         }
 
         content.interruptionLevel = config.level.unLevel
+        content.userInfo = config.onClickAction?.userInfo ?? [:]
 
         if let imagePath = config.imagePath {
             content.attachments = [try createAttachment(from: imagePath)]

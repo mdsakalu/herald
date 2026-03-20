@@ -10,6 +10,7 @@ struct Herald: AsyncParsableCommand {
 
               herald --message "Hello" --timeout 5              Fire-and-forget
               herald --message "OK?" --actions "Yes,No" --json  Buttons, wait for click
+              herald --message "Docs ready" --on-click "open:README.md" --timeout 30
               herald --message "?" --reply "Type..." --json     Text input, wait for reply
               herald --message "?" --reply "..." --actions "Submit,Skip" --json  Both
               echo "Done" | herald --title "CI" --sound default Pipe via stdin
@@ -18,6 +19,7 @@ struct Herald: AsyncParsableCommand {
               --message    Notification body (or pipe via stdin)
               --title      Title text (default: Herald)
               --actions    Comma-separated button labels (max 10)
+              --on-click   Body click action, e.g. open:https://example.com
               --reply      Enable text input; value is placeholder
               --timeout    Auto-dismiss seconds (0 = wait forever)
               --sound      "default", "none", "critical", "critical:VOL", or sound name
@@ -37,27 +39,44 @@ struct Herald: AsyncParsableCommand {
 @main
 enum HeraldApp {
     static func main() async {
+        let launchContext = LaunchContext.current()
+
+        if launchContext.shouldBypassAppRuntime {
+            await runCommand(launchContext: launchContext)
+            return
+        }
+
         // Start NSApplication to enable system dialogs (notification permission prompt)
         // and receive UNUserNotificationCenter delegate callbacks.
         let app = NSApplication.shared
         app.setActivationPolicy(.accessory)
+        NotificationRuntime.shared.installDelegate()
 
         // Run the ArgumentParser command on a detached task
         Task.detached {
-            do {
-                var command = try Herald.parseAsRoot()
-                if var asyncCommand = command as? AsyncParsableCommand {
-                    try await asyncCommand.run()
-                } else {
-                    try command.run()
-                }
-            } catch {
-                Herald.exit(withError: error)
+            if launchContext.shouldAwaitNotificationActivation {
+                _ = await NotificationRuntime.shared.waitForLaunchResponse(timeout: 3)
+                Foundation.exit(0)
             }
-            Foundation.exit(0)
+
+            await runCommand(launchContext: launchContext)
         }
 
         // Drive the event loop for delegate callbacks and system dialogs
         app.run()
+    }
+
+    private static func runCommand(launchContext _: LaunchContext) async {
+        do {
+            var command = try Herald.parseAsRoot()
+            if var asyncCommand = command as? AsyncParsableCommand {
+                try await asyncCommand.run()
+            } else {
+                try command.run()
+            }
+        } catch {
+            Herald.exit(withError: error)
+        }
+        Foundation.exit(0)
     }
 }
