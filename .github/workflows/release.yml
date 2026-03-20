@@ -19,9 +19,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Build release binary
+        run: swift build -c release
+
       - name: Verify version
         run: |
-          SOURCE_VERSION=$(swift build -c release 2>&1 > /dev/null; .build/release/Herald --version)
+          SOURCE_VERSION=$(.build/release/Herald --version)
           TAG_VERSION=${GITHUB_REF_NAME#v}
           if [ "$SOURCE_VERSION" != "$TAG_VERSION" ]; then
             echo "Version mismatch: Version.swift=$SOURCE_VERSION, tag=$TAG_VERSION"
