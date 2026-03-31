@@ -32,6 +32,12 @@ herald --message "Any feedback on this approach?" --reply "Type here..." --timeo
 herald --message "Review this change?" --reply "Comments..." --actions "Approve,Reject" --timeout 300 --json
 ```
 
+If clicking the notification body should open a page or file, append:
+
+```bash
+--on-click "open:<url-or-path>"
+```
+
 4. **Parse the JSON response:**
 
 ```json
@@ -45,12 +51,13 @@ herald --message "Review this change?" --reply "Comments..." --actions "Approve,
 }
 ```
 
-- `activationType`: "actionClicked" | "replied" | "dismissed" | "timeout" | "closed"
+- `activationType`: "actionClicked" | "defaultActionClicked" | "replied" | "dismissed" | "timeout" | "closed"
 - `activationValue`: The button label clicked (or "__reply__" for text input)
 - `userText`: Text the user typed (only for text input responses)
 
 5. **Act on the response:**
    - If `timeout` or `dismissed` or `closed`: Inform the user and stop waiting
+   - If `defaultActionClicked`: The user clicked the notification body; if `--on-click` was present Herald already performed the open action
    - If `actionClicked`: Proceed based on the button value
    - If `replied`: Use the `userText` content
 

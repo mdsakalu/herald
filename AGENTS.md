@@ -17,6 +17,12 @@ make install
 herald --message "Build complete" --timeout 5 --sound default
 ```
 
+### Open a URL or file when clicked
+
+```bash
+herald --message "Release notes ready" --on-click "open:./README.md" --timeout 30
+```
+
 ### Ask a yes/no question (blocks until response)
 
 ```bash
@@ -53,6 +59,7 @@ herald --message "Review this PR?" --reply "Comments..." --actions "Approve,Reje
 | `--subtitle` | String | — | Subtitle text |
 | `--reply` | String | — | Enable text input; value = placeholder |
 | `--actions` | String | — | Comma-separated buttons (max 10) |
+| `--on-click` | String | — | Body click action, currently `open:<url-or-path>` |
 | `--timeout` | Int | 0 | Auto-dismiss seconds (0 = sticky) |
 | `--sound` | String | — | "default", "none", "critical", "critical:VOL", or sound name |
 | `--image` | String | — | Attachment path (`png`, `jpg`, `jpeg`, `heic`, `heif`, `tif`, `tiff`, `bmp` only) |
@@ -83,6 +90,7 @@ When using `--json`, herald outputs:
 | Value | Meaning |
 |-------|---------|
 | `actionClicked` | User clicked a button |
+| `defaultActionClicked` | User clicked the notification body |
 | `replied` | User submitted text input |
 | `dismissed` | User dismissed the notification |
 | `timeout` | Auto-dismissed after timeout |
@@ -113,6 +121,11 @@ result=$(herald --message "Any concerns?" --reply "Type feedback..." --actions "
 ### Background notification
 ```bash
 herald --message "Tests passed (42/42)" --title "CI" --timeout 5 --sound default --level passive
+```
+
+### Open docs from a notification click
+```bash
+herald --message "Build log ready" --on-click "open:https://example.com/builds/123" --timeout 30 --level passive
 ```
 
 ### Pipeline notification

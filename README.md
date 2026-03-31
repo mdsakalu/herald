@@ -22,18 +22,18 @@ Herald builds upon [alerter](https://github.com/vjeantet/alerter) and [terminal-
 
 ### What's new vs alerter/terminal-notifier
 
-| Feature | alerter | terminal-notifier | **herald** |
-|---------|---------|-------------------|------------|
-| API | NSUserNotification (deprecated) | NSUserNotification (deprecated) | **UNUserNotificationCenter** |
-| Action buttons | Private API hack | No | **First-class UNNotificationAction** |
-| Text input | Private API hack | No | **UNTextInputNotificationAction** |
-| Text input + buttons | Mutually exclusive | N/A | **Both together** |
-| Interruption levels | `--ignoreDnd` hack | `--ignoreDnD` hack | **4 tiers (passive/active/timeSensitive/critical)** |
-| Threading | `--group` only | `--group` only | **threadIdentifier + group** |
-| Stacking priority | No | No | **relevanceScore (0.0-1.0)** |
-| Notification update | Replace by group | Replace by group | **Replace by ID (in-place)** |
-| Attachments | contentImage only | contentImage only | **Still images only** |
-| Custom sounds | System only | System only | **Custom sound files** |
+| Feature              | alerter                         | terminal-notifier               | **herald**                                          |
+| -------------------- | ------------------------------- | ------------------------------- | --------------------------------------------------- |
+| API                  | NSUserNotification (deprecated) | NSUserNotification (deprecated) | **UNUserNotificationCenter**                        |
+| Action buttons       | Private API hack                | No                              | **First-class UNNotificationAction**                |
+| Text input           | Private API hack                | No                              | **UNTextInputNotificationAction**                   |
+| Text input + buttons | Mutually exclusive              | N/A                             | **Both together**                                   |
+| Interruption levels  | `--ignoreDnd` hack              | `--ignoreDnD` hack              | **4 tiers (passive/active/timeSensitive/critical)** |
+| Threading            | `--group` only                  | `--group` only                  | **threadIdentifier + group**                        |
+| Stacking priority    | No                              | No                              | **relevanceScore (0.0-1.0)**                        |
+| Notification update  | Replace by group                | Replace by group                | **Replace by ID (in-place)**                        |
+| Attachments          | contentImage only               | contentImage only               | **Still images only**                               |
+| Custom sounds        | System only                     | System only                     | **Custom sound files**                              |
 
 ## Install
 
@@ -82,6 +82,61 @@ brew uninstall herald
 - Updating or replacing progress notifications for long-running tasks
 - Grouping related notifications with `--thread` and prioritizing them with `--relevance`
 
+## Screenshots
+
+Live macOS captures of Herald in use. Exact chrome varies a bit by OS version and notification presentation style, so compact alerts may surface standalone actions under an `Options` menu.
+
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/basic-notification.png" alt="Basic Herald notification showing the title, message, and app icon" width="100%" />
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/image-attachment.png" alt="Herald notification with an expanded still-image attachment" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <strong>Basic notification</strong><br />Title, message, and app icon in the standard alert UI.
+    </td>
+    <td valign="top">
+      <strong>Still-image attachment</strong><br />Expanded image content rendered inline with the notification.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/action-options.png" alt="Herald notification exposing action choices through the macOS options menu" width="100%" />
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/text-reply.png" alt="Herald notification with an inline text reply field" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <strong>Action choices</strong><br />First-class notification actions surfaced through macOS alert controls.
+    </td>
+    <td valign="top">
+      <strong>Inline reply</strong><br />Text input captured directly from the notification.
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/reply-plus-actions.png" alt="Herald notification that combines a reply field with action buttons" width="100%" />
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/threaded-notifications.png" alt="A grouped set of Herald notifications sharing a thread" width="100%" />
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <strong>Reply + actions</strong><br />Text input and action buttons together in one notification.
+    </td>
+    <td valign="top">
+      <strong>Threaded notifications</strong><br />Related alerts grouped into a single conversation in Notification Center.
+    </td>
+  </tr>
+</table>
+
 ## Usage
 
 ```bash
@@ -99,6 +154,12 @@ herald --message "Review?" --reply "Comments..." --actions "Approve,Reject" --ti
 
 # Image attachment
 herald --message "Build artifact" --image ./screenshot.png --timeout 10
+
+# Open a URL when the notification body is clicked
+herald --message "Read the changelog" --on-click "open:https://example.com/changelog" --timeout 30
+
+# Open a local Markdown file with its default app
+herald --message "Daily notes ready" --on-click "open:./notes/today.md" --timeout 30
 
 # Supported attachment formats
 # png, jpg, jpeg, heic, heif, tif, tiff, bmp
@@ -124,22 +185,23 @@ herald remove --all
 
 **`herald [send]`** (default subcommand)
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--message` | String | stdin | Notification body |
-| `--title` | String | `"Herald"` | Title text |
-| `--subtitle` | String | — | Subtitle text |
-| `--reply` | String | — | Enable text input; value is placeholder text |
-| `--actions` | String | — | Comma-separated button labels (max 10) |
-| `--timeout` | Int | `0` | Auto-dismiss seconds (0 = sticky until interaction) |
-| `--sound` | String | — | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name |
-| `--image` | String | — | Attachment path (`png`, `jpg`, `jpeg`, `heic`, `heif`, `tif`, `tiff`, `bmp` only) |
-| `--thread` | String | — | Thread ID (visual grouping in NC) |
-| `--level` | Enum | `active` | `passive` / `active` / `timeSensitive` / `critical` |
-| `--relevance` | Double | — | Stack priority (0.0-1.0) |
-| `--badge` | Int | — | App badge number |
-| `--id` | String | auto UUID | Notification ID (for update/replace) |
-| `--json` | Flag | `false` | Structured JSON output |
+| Flag          | Type   | Default    | Description                                                                       |
+| ------------- | ------ | ---------- | --------------------------------------------------------------------------------- |
+| `--message`   | String | stdin      | Notification body                                                                 |
+| `--title`     | String | `"Herald"` | Title text                                                                        |
+| `--subtitle`  | String | —          | Subtitle text                                                                     |
+| `--reply`     | String | —          | Enable text input; value is placeholder text                                      |
+| `--actions`   | String | —          | Comma-separated button labels (max 10)                                            |
+| `--on-click`  | String | —          | Body click action, currently `open:<url-or-path>`                                 |
+| `--timeout`   | Int    | `0`        | Auto-dismiss seconds (0 = sticky until interaction)                               |
+| `--sound`     | String | —          | `"default"`, `"none"`, `"critical"`, `"critical:VOL"`, or sound name              |
+| `--image`     | String | —          | Attachment path (`png`, `jpg`, `jpeg`, `heic`, `heif`, `tif`, `tiff`, `bmp` only) |
+| `--thread`    | String | —          | Thread ID (visual grouping in NC)                                                 |
+| `--level`     | Enum   | `active`   | `passive` / `active` / `timeSensitive` / `critical`                               |
+| `--relevance` | Double | —          | Stack priority (0.0-1.0)                                                          |
+| `--badge`     | Int    | —          | App badge number                                                                  |
+| `--id`        | String | auto UUID  | Notification ID (for update/replace)                                              |
+| `--json`      | Flag   | `false`    | Structured JSON output                                                            |
 
 **`herald list [--json]`** — list delivered and pending notifications
 
@@ -148,12 +210,14 @@ herald remove --all
 ### Output Format
 
 Plain text (default):
+
 ```
 @ACTIONCLICKED
 Yes
 ```
 
 JSON (`--json`):
+
 ```json
 {
   "activationType": "actionClicked",
@@ -165,13 +229,14 @@ JSON (`--json`):
 }
 ```
 
-| activationType | Meaning |
-|---------------|---------|
-| `actionClicked` | User clicked a button |
-| `replied` | User submitted text input |
-| `dismissed` | User dismissed the notification |
-| `timeout` | Auto-dismissed after timeout |
-| `closed` | Process received SIGINT/SIGTERM |
+| activationType         | Meaning                            |
+| ---------------------- | ---------------------------------- |
+| `actionClicked`        | User clicked a button              |
+| `defaultActionClicked` | User clicked the notification body |
+| `replied`              | User submitted text input          |
+| `dismissed`            | User dismissed the notification    |
+| `timeout`              | Auto-dismissed after timeout       |
+| `closed`               | Process received SIGINT/SIGTERM    |
 
 ## AI Agent Integration
 
@@ -192,6 +257,9 @@ result=$(herald --message "Any concerns?" --reply "Type feedback..." \
 
 # Background notification — fire and forget
 herald --message "Tests passed (42/42)" --title "CI" --timeout 5 --sound default --level passive
+
+# Open docs from a passive notification click
+herald --message "Release notes ready" --on-click "open:./README.md" --timeout 30 --level passive
 
 # Pipeline notification — piped content
 echo "Deploy complete: 3 services updated" | herald --title "Deploy" --timeout 10 --sound default
@@ -221,7 +289,7 @@ codesign --force --deep --sign - .build/Herald.app
 
 ### Non-interactive sends still block
 
-If `herald --message "test"` hangs instead of exiting immediately, make sure you're running v0.1.0+ — earlier builds blocked on all sends. Non-interactive notifications (no `--actions` or `--reply`) are fire-and-forget and exit immediately after delivery.
+If `herald --message "test"` hangs instead of exiting immediately, make sure you're running v0.1.0+ — earlier builds blocked on all sends. Non-interactive notifications (no `--actions` or `--reply`) remain fire-and-forget even when you add `--on-click`, and exit immediately after delivery.
 
 ## License
 
