@@ -31,7 +31,7 @@ struct Herald: AsyncParsableCommand {
             Interactive sends block until the user responds or --timeout expires.
             """,
         version: HeraldVersion.current,
-        subcommands: [Send.self, ListNotifications.self, RemoveNotifications.self],
+        subcommands: [Send.self, ListNotifications.self, RemoveNotifications.self, RequestPermission.self],
         defaultSubcommand: Send.self
     )
 }
