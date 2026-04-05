@@ -17,7 +17,7 @@ struct RequestPermission: AsyncParsableCommand {
 
         var status = ""
         var granted = false
-        var errorString: String? = nil
+        var errorString: String?
 
         do {
             granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
