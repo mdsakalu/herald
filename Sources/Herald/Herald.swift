@@ -29,6 +29,9 @@ struct Herald: AsyncParsableCommand {
 
             Non-interactive sends (no --actions/--reply) are fire-and-forget.
             Interactive sends block until the user responds or --timeout expires.
+
+            If installing for the first time, you may need to grant permission:
+              herald request-permission
             """,
         version: HeraldVersion.current,
         subcommands: [Send.self, ListNotifications.self, RemoveNotifications.self, RequestPermission.self],
