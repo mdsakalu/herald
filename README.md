@@ -176,6 +176,7 @@ herald --message "Step 1 done" --thread "pipeline" --relevance 0.5
 herald --message "Step 2 done" --thread "pipeline" --relevance 0.8
 
 # Notification management
+herald request-permission
 herald list --json
 herald remove --id <notification-id>
 herald remove --all
@@ -206,6 +207,8 @@ herald remove --all
 **`herald list [--json]`** — list delivered and pending notifications
 
 **`herald remove --id ID | --all`** — remove notifications
+
+**`herald request-permission [--json]`** — explicitly trigger the macOS permission prompt
 
 ### Output Format
 

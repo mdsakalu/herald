@@ -99,6 +99,7 @@ When using `--json`, herald outputs:
 ## Notification Management
 
 ```bash
+herald request-permission       # Trigger macOS permission prompt
 herald list --json              # List all notifications
 herald remove --id <id>         # Remove by ID
 herald remove --all             # Remove all
